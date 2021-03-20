@@ -1,70 +1,71 @@
 package optimisation
 
 import (
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
 	"math"
 )
 
-const Rastrigin_n = 20
-const Rastrigin_min = -5.12
-const Rastrigin_max = 5.12
+const RastriginN = 20
+const RastriginMin = -5.12
+const RastriginMax = 5.12
+const RastriginMutationP = 1/RastriginN
 
-func Rastrigin(x [Rastrigin_n]uint16) float64 {
-	x_scaled := scaleInputs(x[:], Rastrigin_min, Rastrigin_max)
+func Rastrigin(x []evolution.Individual) float64 {
+	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
-	for i:=0; i< Rastrigin_n; i++ {
-		x_i := float64(x_scaled[i])
-		sum += math.Pow(x_i, 2) - 3*math.Cos(2*math.Pi*x_i)
+	for i:=0; i< RastriginN; i++ {
+		sum += math.Pow(xScaled[i], 2) - 3*math.Cos(2*math.Pi*xScaled[i])
 	}
-	return 3*Rastrigin_n + sum
+	return 3*RastriginN + sum
 }
 
-const Schwefel_n = 10
-const Schwefel_min = -500.0
-const Schwefel_max = 500.0
+const SchwefelN = 10
+const SchwefelMin = -500.0
+const SchwefelMax = 500.0
+const SchwefelMutationP = 1/SchwefelN
 
 // Schwefel function differs to that in the paper, the paper has a mistake in a sign (+ve instead of -ve)
-func Schwefel(x [Schwefel_n]uint16) float64 {
-	x_scaled := scaleInputs(x[:], Schwefel_min, Schwefel_max)
+func Schwefel(x []evolution.Individual) float64 {
+	xScaled := scaleInputs(x[:], SchwefelMin, SchwefelMax)
 	sum := 0.0
-	for i:=0; i<Schwefel_n; i++ {
-		x_i := float64(x_scaled[i])
-		sum += x_i*math.Sin(math.Sqrt(math.Abs(x_i)))
+	for i:=0; i< SchwefelN; i++ {
+		sum += xScaled[i] * math.Sin(math.Sqrt(math.Abs(xScaled[i])))
 	}
-	return 418.9829*Schwefel_n - sum
+	return 418.9829*SchwefelN - sum
 }
 
-const Griewangk_n = 10
-const Griewangk_min = -600.0
-const Griewangk_max = 600.0
+const GriewangkN = 10
+const GriewangkMin = -600.0
+const GriewangkMax = 600.0
+const GriewangkMutationP = 1/GriewangkN
 
-func Griewangk(x [Griewangk_n]uint16) float64 {
-	x_scaled := scaleInputs(x[:], Griewangk_min, Griewangk_max)
+func Griewangk(x []evolution.Individual) float64 {
+	xScaled := scaleInputs(x[:], GriewangkMin, GriewangkMax)
 	sigma := 0.0
 	product := 1.0
-	for i:=0; i<Griewangk_n; i++ {
-		x_i := float64(x_scaled[i])
-		sigma += math.Pow(x_i, 2) / 4000
-		product *= math.Cos(x_i/math.Sqrt(float64(i+1)))
+	for i:=0; i< GriewangkN; i++ {
+		sigma += math.Pow(xScaled[i], 2) / 4000
+		product *= math.Cos(xScaled[i]/math.Sqrt(float64(i+1)))
 	}
 
 	return 1.0 + sigma - product
 }
 
-const Ackley_n = 30
-const Ackley_min = -30.0
-const Ackley_max = 30.0
+const AckleyN = 30
+const AckleyMin = -30.0
+const AckleyMax = 30.0
+const AckleyMutationP = 1/GriewangkN
 
 
-func Ackley(x [Ackley_n]uint16) float64 {
-	x_scaled := scaleInputs(x[:], Ackley_min, Ackley_max)
+func Ackley(x []evolution.Individual) float64 {
+	xScaled := scaleInputs(x[:], AckleyMin, AckleyMax)
 	sumA, sumB := 0.0, 0.0
-	for i:=0; i<Ackley_n; i++ {
-		x_i := float64(x_scaled[i])
-		sumA += math.Pow(x_i, 2)
-		sumB += math.Cos(2*math.Pi*x_i)
+	for i:=0; i< AckleyN; i++ {
+		sumA += math.Pow(xScaled[i], 2)
+		sumB += math.Cos(2*math.Pi*xScaled[i])
 	}
-	sumA *= 1/Ackley_n
-	sumB *= 1/Ackley_n
+	sumA *= 1/ AckleyN
+	sumB *= 1/ AckleyN
 
 	return 20 + math.E - 20*math.Exp(-0.2*math.Sqrt(sumA)) - math.Exp(sumB)
 }
@@ -74,10 +75,10 @@ func Rosenbrock() float64 {
 }
 
 // scaleInputs scales an slice of uint16s between two ranges
-func scaleInputs(x []uint16, min float64, max float64) []float64 {
+func scaleInputs(x []evolution.Individual, min float64, max float64) []float64 {
 	var scaled []float64
 	for i:=0; i<len(x); i++ {
-		scaled = append(scaled, (float64(x[i]) / 65535) * (max - min) + min)
+		scaled = append(scaled, (float64(x[i].Gene) / 65535) * (max - min) + min)
 	}
 	return scaled
 }
