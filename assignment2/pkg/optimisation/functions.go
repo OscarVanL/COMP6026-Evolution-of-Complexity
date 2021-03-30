@@ -1,7 +1,6 @@
 package optimisation
 
 import (
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
 	"math"
 )
 
@@ -10,7 +9,7 @@ const RastriginMin = -5.12
 const RastriginMax = 5.12
 const RastriginMutationP = 1/RastriginN
 
-func Rastrigin(x []evolution.Individual) float64 {
+func Rastrigin(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
 	for i:=0; i< RastriginN; i++ {
@@ -25,7 +24,7 @@ const SchwefelMax = 500.0
 const SchwefelMutationP = 1/SchwefelN
 
 // Schwefel function differs to that in the paper, the paper has a mistake in a sign (+ve instead of -ve)
-func Schwefel(x []evolution.Individual) float64 {
+func Schwefel(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], SchwefelMin, SchwefelMax)
 	sum := 0.0
 	for i:=0; i< SchwefelN; i++ {
@@ -39,7 +38,7 @@ const GriewangkMin = -600.0
 const GriewangkMax = 600.0
 const GriewangkMutationP = 1/GriewangkN
 
-func Griewangk(x []evolution.Individual) float64 {
+func Griewangk(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], GriewangkMin, GriewangkMax)
 	sigma := 0.0
 	product := 1.0
@@ -57,7 +56,7 @@ const AckleyMax = 30.0
 const AckleyMutationP = 1/GriewangkN
 
 
-func Ackley(x []evolution.Individual) float64 {
+func Ackley(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], AckleyMin, AckleyMax)
 	sumA, sumB := 0.0, 0.0
 	for i:=0; i< AckleyN; i++ {
@@ -75,10 +74,10 @@ func Rosenbrock() float64 {
 }
 
 // scaleInputs scales an slice of uint16s between two ranges
-func scaleInputs(x []evolution.Individual, min float64, max float64) []float64 {
+func scaleInputs(x []uint16, min float64, max float64) []float64 {
 	var scaled []float64
 	for i:=0; i<len(x); i++ {
-		scaled = append(scaled, (float64(x[i].Gene) / 65535) * (max - min) + min)
+		scaled = append(scaled, (float64(x[i]) / 65535) * (max - min) + min)
 	}
 	return scaled
 }
