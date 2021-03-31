@@ -1,6 +1,7 @@
-package evolution
+package ccga
 
 import (
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math"
 	"math/rand"
 	"sort"
@@ -8,9 +9,6 @@ import (
 
 // Crossover probability
 const CrossoverP = 0.6
-
-// Fitness functions that can be used to evaluate several individuals
-type Fitness func(x []uint16) float64
 
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.
 func (pop Species) InitCoevolutions() {
@@ -38,8 +36,57 @@ func (pop Species) InitCoevolutions() {
 	}
 }
 
-// EvolveSpecies does crossover for each individual with the best other individuals and mutates the coevolved offspring.
-func (pop Species) EvolveSpecies(MutationP float64) {
+func (pop Species) Mutate(MutationP float64) {
+	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
+
+	//Checks if bit is set as position n
+	hasBit := func(n uint16, pos uint) bool {
+		val := n & (1 << pos)
+		return val > 0
+	}
+
+	// Sets bit at index pos to 1
+	setBit := func(n uint16, pos uint) uint16 {
+		n |= (1 << pos)
+		return n
+	}
+
+	// Sets bit at index pos to 0
+	clearBit := func(n uint16, pos uint) uint16 {
+		mask := ^(1 << pos)
+		nTemp := int(n)
+		nTemp &= mask
+		return uint16(nTemp)
+	}
+
+	for s:=0; s<len(pop); s++ {
+		species := pop[s]
+
+		for i:=0; i<len(species); i++ {
+			individual := species[i]
+
+			mutatedGene := individual.Gene
+			// Mutate each of the 16 bits in the individual's uint16 gene
+			for b:=0; b<16; b++ {
+				// P probability of mutation
+				if rand.Float64() < MutationP {
+					// Perform bit-flip
+					if hasBit(mutatedGene, uint(b)) {
+						mutatedGene = clearBit(mutatedGene, uint(b))
+					} else {
+						mutatedGene = setBit(mutatedGene, uint(b))
+					}
+				}
+			}
+			// Replace individual's old gene with mutated one
+			pop[s][i].Gene = mutatedGene
+		}
+	}
+
+}
+
+// Coevolve does crossover for each individual with the best other individuals and mutates the coevolved offspring.
+func (pop Species) Coevolve(MutationP float64) {
 	// Evolve each species
 	for s:=0; s<len(pop); s++ {
 		species := pop[s]
@@ -66,16 +113,13 @@ func (pop Species) EvolveSpecies(MutationP float64) {
 				}
 			}
 			individual.coevolution = tmpPop
-			//Todo: Do mutation
-			individual.MutateIndividual(MutationP)
-
 			pop[s][i] = individual
 		}
 	}
 }
 
 // EvalFitness calculates the fitness score for each coevolved individual
-func (pop Species) EvalFitness(fitness Fitness) {
+func (pop Species) EvalFitness(fitness f.Fitness) {
 	type empty struct{}
 	spec := make(chan empty, len(pop))
 

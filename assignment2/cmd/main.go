@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	pop "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ccga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/wcharczuk/go-chart"
 	"math"
@@ -92,7 +92,7 @@ type EvolutionResults struct {
 func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
 	var label string
 	var N int
-	var function pop.Fitness
+	var function f.Fitness
 	var mutationP float64
 
 	switch algo {
@@ -124,6 +124,8 @@ func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
 		mutationP = 1/10
 	}
 
+	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
+
 	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
 	XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA := GA(N, function, mutationP)
 
@@ -133,8 +135,8 @@ func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
 		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}
 }
 
-func CCGA1(N int, function pop.Fitness, mutationP float64) ([]float64, []float64, float64, []uint16) {
-	species := pop.GenerateSpecies(N, 100)
+func CCGA1(N int, function f.Fitness, mutationP float64) ([]float64, []float64, float64, []uint16) {
+	species := ccga.InitSpecies(N, 100)
 	species.InitCoevolutions()
 	species.EvalFitness(function)
 
@@ -144,14 +146,18 @@ func CCGA1(N int, function pop.Fitness, mutationP float64) ([]float64, []float64
 	var fitnessHistory []float64
 
 	for i:=0; i<iterations; i++ {
-		xVal = append(xVal, float64(i+1))
+		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
 
-		species.EvolveSpecies(mutationP)
+		// Mutates each individual's own genes
+		species.Mutate(mutationP)
+		// Coevolves individuals with the best (mutated) genes from each species
+		species.Coevolve(mutationP)
+		// Re-evaluates fitness
 		species.EvalFitness(function)
-		//Todo: Do mutation & evolution cycle
+		// Finds individual with best fitness & genes in this generation
 		fitness, coevolution := species.GetBestFitness()
-
 		fitnessHistory = append(fitnessHistory, fitness)
+
 		if fitness < bestFitness {
 			fmt.Println("New best fitness:", fitness)
 			bestFitness = fitness
@@ -173,7 +179,7 @@ func CCGA1(N int, function pop.Fitness, mutationP float64) ([]float64, []float64
 	return xVal, fitnessHistory, bestFitness, bestCoevolution
 }
 
-func GA(N int, function pop.Fitness, mutationP float64) ([]float64, []float64, float64, []uint16) {
+func GA(N int, function f.Fitness, mutationP float64) ([]float64, []float64, float64, []uint16) {
 	// TODO: Do normal GA
 	return []float64{}, []float64{}, 0.0, []uint16{}
 }
