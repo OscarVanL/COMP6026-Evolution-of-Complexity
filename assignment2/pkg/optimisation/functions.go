@@ -4,10 +4,12 @@ import (
 	"math"
 )
 
-const RastriginN = 20
-const RastriginMin = -5.12
-const RastriginMax = 5.12
-const RastriginMutationP = 1/RastriginN
+const(
+	RastriginN = 20
+	RastriginMin = -5.12
+	RastriginMax = 5.12
+	RastriginMutationP = 1/RastriginN
+)
 
 func Rastrigin(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
@@ -18,10 +20,12 @@ func Rastrigin(x []uint16) float64 {
 	return 3*RastriginN + sum
 }
 
-const SchwefelN = 10
-const SchwefelMin = -500.0
-const SchwefelMax = 500.0
-const SchwefelMutationP = 1/SchwefelN
+const(
+	SchwefelN = 10
+	SchwefelMin = -500.0
+	SchwefelMax = 500.0
+	SchwefelMutationP = 1/SchwefelN
+)
 
 // Schwefel function differs to that in the paper, the paper has a mistake in a sign (+ve instead of -ve)
 func Schwefel(x []uint16) float64 {
@@ -33,10 +37,12 @@ func Schwefel(x []uint16) float64 {
 	return 418.9829*SchwefelN - sum
 }
 
-const GriewangkN = 10
-const GriewangkMin = -600.0
-const GriewangkMax = 600.0
-const GriewangkMutationP = 1/GriewangkN
+const(
+	GriewangkN = 10
+	GriewangkMin = -600.0
+	GriewangkMax = 600.0
+	GriewangkMutationP = 1/GriewangkN
+)
 
 func Griewangk(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], GriewangkMin, GriewangkMax)
@@ -50,11 +56,12 @@ func Griewangk(x []uint16) float64 {
 	return 1.0 + sigma - product
 }
 
-const AckleyN = 30
-const AckleyMin = -30.0
-const AckleyMax = 30.0
-const AckleyMutationP = 1/GriewangkN
-
+const (
+	AckleyN = 30
+	AckleyMin = -30.0
+	AckleyMax = 30.0
+	AckleyMutationP = 1/AckleyN
+)
 
 func Ackley(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], AckleyMin, AckleyMax)
@@ -69,7 +76,8 @@ func Ackley(x []uint16) float64 {
 	return 20 + math.E - 20*math.Exp(-0.2*math.Sqrt(sumA)) - math.Exp(sumB)
 }
 
-func Rosenbrock() float64 {
+func Rosenbrock(x []uint16) float64 {
+	// Todo: Write Rosenbrock function
 	return 0.0
 }
 
