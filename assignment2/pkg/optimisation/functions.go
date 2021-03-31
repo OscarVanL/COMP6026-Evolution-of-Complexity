@@ -10,7 +10,7 @@ const(
 	RastriginN = 20
 	RastriginMin = -5.12
 	RastriginMax = 5.12
-	RastriginMutationP = float64(1)/RastriginN
+	RastriginMutationP = float32(1)/RastriginN
 )
 
 func Rastrigin(x []uint16) float64 {
@@ -26,7 +26,7 @@ const(
 	SchwefelN = 10
 	SchwefelMin = -500.0
 	SchwefelMax = 500.0
-	SchwefelMutationP = float64(1)/SchwefelN
+	SchwefelMutationP = float32(1)/SchwefelN
 )
 
 // Schwefel function differs to that in the paper, the paper has a mistake in a sign (+ve instead of -ve)
@@ -43,7 +43,7 @@ const(
 	GriewangkN = 10
 	GriewangkMin = -600.0
 	GriewangkMax = 600.0
-	GriewangkMutationP = float64(1)/GriewangkN
+	GriewangkMutationP = float32(1)/GriewangkN
 )
 
 func Griewangk(x []uint16) float64 {
@@ -62,7 +62,7 @@ const (
 	AckleyN = 30
 	AckleyMin = -30.0
 	AckleyMax = 30.0
-	AckleyMutationP = float64(1)/AckleyN
+	AckleyMutationP = float32(1)/AckleyN
 )
 
 func Ackley(x []uint16) float64 {

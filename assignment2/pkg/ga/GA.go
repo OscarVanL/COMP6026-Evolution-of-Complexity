@@ -5,12 +5,14 @@ import (
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math/rand"
 	"sort"
+	"time"
 )
 
 // Crossover probability
 const CrossoverP = 0.6
 
-func (pop Population) Mutate(MutationP float64) {
+// Mutate performs bit-flip mutation on each of the individual's genes
+func (pop Population) Mutate(MutationP float32) {
 	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
 
 	//Checks if bit is set as position n
@@ -33,6 +35,9 @@ func (pop Population) Mutate(MutationP float64) {
 		return uint16(nTemp)
 	}
 
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
 
 	for i:=0; i<len(pop); i++ {
 		individual := pop[i]
@@ -44,7 +49,7 @@ func (pop Population) Mutate(MutationP float64) {
 			// Mutate each of the 16 bits in the gene
 			for b:=0; b<16; b++ {
 				// P probability of mutation
-				if rand.Float64() < MutationP {
+				if r.Float32() < MutationP {
 					// Perform bit-flip
 					if hasBit(mutatedGenes[g], uint(b)) {
 						mutatedGenes[g] = clearBit(mutatedGenes[g], uint(b))
@@ -60,17 +65,20 @@ func (pop Population) Mutate(MutationP float64) {
 }
 
 func (pop Population) Evolve() {
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
 	// Get individual with best Fitness
 	bestIndividual := pop[0]
 	for i:=0; i<len(pop); i++ {
 		// Do crossover for each gene
 		for g:=0; g<len(bestIndividual.Genes); g++ {
-			if rand.Float64() < CrossoverP {
+			if r.Float32() < CrossoverP {
 				// Perform two-point crossover
 				offspringA, offspringB := evolution.TwoPointCrossover(pop[i].Genes[g], bestIndividual.Genes[g])
 
 				// Randomly select one of the offspring to use
-				if rand.Intn(2) == 0 {
+				if r.Intn(2) == 0 {
 					pop[i].Genes[g] = offspringA
 				} else {
 					pop[i].Genes[g] = offspringB
