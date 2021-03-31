@@ -14,10 +14,10 @@ type Generations []Population
 // GAPopulation keeps the individuals (GAIndividual) that make a the GA's population
 type Population []Individual
 
-// GAIndividual holds the genes and fitness for an individual
+// GAIndividual holds the genes and Fitness for an individual
 type Individual struct {
-	Genes []uint16
-	fitness float64
+	Genes   []uint16
+	Fitness float64
 }
 
 // InitPopulation will generate the initial population for the standard GA, each with N genes

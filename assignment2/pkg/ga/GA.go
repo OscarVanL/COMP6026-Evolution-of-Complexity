@@ -1,9 +1,14 @@
 package ga
 
 import (
-	"fmt"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math/rand"
+	"sort"
 )
+
+// Crossover probability
+const CrossoverP = 0.6
 
 func (pop Population) Mutate(MutationP float64) {
 	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
@@ -33,7 +38,6 @@ func (pop Population) Mutate(MutationP float64) {
 		individual := pop[i]
 
 		mutatedGenes := individual.Genes
-		fmt.Println("Before mutation:", mutatedGenes)
 
 		// Mutate each of the individual's genes
 		for g:=0; g<len(mutatedGenes); g++ {
@@ -41,24 +45,50 @@ func (pop Population) Mutate(MutationP float64) {
 			for b:=0; b<16; b++ {
 				// P probability of mutation
 				if rand.Float64() < MutationP {
-					fmt.Println("Mutating")
 					// Perform bit-flip
 					if hasBit(mutatedGenes[g], uint(b)) {
 						mutatedGenes[g] = clearBit(mutatedGenes[g], uint(b))
 					} else {
 						mutatedGenes[g] = setBit(mutatedGenes[g], uint(b))
 					}
-				} else {
-					fmt.Println("Not mutating")
 				}
 			}
 		}
-		fmt.Println("After mutation:", mutatedGenes)
 		// Replace individual's old genes with mutated ones
 		pop[i].Genes = mutatedGenes
 	}
 }
 
 func (pop Population) Evolve() {
+	// Get individual with best Fitness
+	bestIndividual := pop[0]
+	for i:=0; i<len(pop); i++ {
+		// Do crossover for each gene
+		for g:=0; g<len(bestIndividual.Genes); g++ {
+			if rand.Float64() < CrossoverP {
+				// Perform two-point crossover
+				offspringA, offspringB := evolution.TwoPointCrossover(pop[i].Genes[g], bestIndividual.Genes[g])
 
+				// Randomly select one of the offspring to use
+				if rand.Intn(2) == 0 {
+					pop[i].Genes[g] = offspringA
+				} else {
+					pop[i].Genes[g] = offspringB
+				}
+			}
+		}
+	}
 }
+
+func (pop Population) EvalFitness(fitness f.Fitness) {
+	for i:=0; i<len(pop); i++ {
+		// Calculate individual's Fitness
+		pop[i].Fitness = fitness(pop[i].Genes)
+	}
+
+	// Sort the populations individuals by fittest (smallest) to least fit (largest)
+	sort.Slice(pop, func(i, j int) bool {
+		return pop[i].Fitness < pop[j].Fitness
+	})
+}
+

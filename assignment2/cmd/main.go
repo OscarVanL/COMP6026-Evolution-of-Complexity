@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ccga"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/wcharczuk/go-chart"
 	"math"
@@ -125,12 +126,12 @@ func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
 		mutationP = 1/10
 	}
 
-	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
 
-	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
+	fmt.Println("Starting standard GA with params: N:", N, "MutationP:", mutationP)
 	XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA := GA(N, function, mutationP)
+	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
+	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
 
-	// Todo: Add results from standard GA
 	return EvolutionResults{label,
 		XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA,
 		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}
@@ -166,11 +167,10 @@ func CCGA1(N int, function f.Fitness, mutationP float64) ([]float64, []float64, 
 		fitnessHistory = append(fitnessHistory, bestFitness)
 
 		if i % 1000 == 0 {
-			fmt.Printf("Iteration %v/%v", i, iterations)
+			fmt.Printf("Iteration %v/%v\n", i, iterations)
 		}
 	}
 
-	//fmt.Println("Fitness history:", fitnessHistory)
 	fmt.Println("Best Coevolution fitness:", bestFitness, ". Parameters:")
 	for i:=0; i<len(bestCoevolution); i++ {
 		fmt.Print(bestCoevolution[i], ", ")
@@ -181,6 +181,38 @@ func CCGA1(N int, function f.Fitness, mutationP float64) ([]float64, []float64, 
 }
 
 func GA(N int, function f.Fitness, mutationP float64) ([]float64, []float64, float64, []uint16) {
-	// TODO: Do normal GA
-	return []float64{}, []float64{}, 0.0, []uint16{}
+	population := ga.InitPopulation(N, 100)
+	population.EvalFitness(function)
+
+	bestFitness := math.MaxFloat64
+	var bestGenes []uint16
+	var xVal []float64
+	var fitnessHistory []float64
+
+	for i:=0; i<iterations; i++ {
+		xVal = append(xVal, float64(i+1))
+		population.Evolve()
+		population.Mutate(mutationP)
+		population.EvalFitness(function)
+		fitness, gene := population[0].Fitness, population[0].Genes
+		if fitness < bestFitness {
+			fmt.Println("New best fitness:", fitness)
+			bestFitness = fitness
+			bestGenes = gene
+		}
+
+		fitnessHistory = append(fitnessHistory, bestFitness)
+
+		if i % 1000 == 0 {
+			fmt.Printf("Iteration %v/%v\n", i, iterations)
+		}
+	}
+
+	fmt.Println("Best GA fitness:", bestFitness, ". Parameters:")
+	for i:=0; i<len(bestGenes); i++ {
+		fmt.Print(bestGenes[i], ", ")
+	}
+	fmt.Println()
+
+	return xVal, fitnessHistory, bestFitness, bestGenes
 }

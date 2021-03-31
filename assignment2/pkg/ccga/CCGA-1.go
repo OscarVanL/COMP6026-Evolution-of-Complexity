@@ -106,25 +106,20 @@ func (pop Species) Coevolve() {
 			// Combine individual with best individuals from other species, if CrossoverP is met
 			tmpPop := make([]uint16, len(pop))
 			for N:=0; N<len(pop); N++ {
-				if s == N {
-					tmpPop[N] = individual.Gene
-				} else {
-					if rand.Float64() < CrossoverP {
-						// Perform two-point crossover with best gene and individual's existing gene
-						offspringA, offspringB := evolution.TwoPointCrossover(pop[N][0].Gene, individual.coevolution[N])
+				// Whether to perform crossover
+				if rand.Float64() < CrossoverP {
+					// Perform two-point crossover with best gene and individual's existing gene
+					offspringA, offspringB := evolution.TwoPointCrossover(pop[N][0].Gene, individual.coevolution[N])
 
-						// Randomly select one of the offspring to use
-						if rand.Intn(2) == 0 {
-							tmpPop[N] = offspringA
-						} else {
-							tmpPop[N] = offspringB
-						}
-
+					// Randomly select one of the offspring to use
+					if rand.Intn(2) == 0 {
+						tmpPop[N] = offspringA
 					} else {
-						// Keep the existing gene, no crossover
-						tmpPop[N] = individual.coevolution[N]
+						tmpPop[N] = offspringB
 					}
-
+				} else {
+					// Keep the existing gene, no crossover
+					tmpPop[N] = individual.coevolution[N]
 				}
 			}
 			individual.coevolution = tmpPop
@@ -160,7 +155,6 @@ func (pop Species) EvalFitness(fitness f.Fitness) {
 	// Wait until all individuals have had fitness evaluated
 	for i:=0; i<len(pop); i++ { <- spec }
 }
-
 
 // GetBestFitness finds the individual with the fittest (smallest) fitness score amongst the species
 func (pop Species) GetBestFitness() (float64, []uint16) {
