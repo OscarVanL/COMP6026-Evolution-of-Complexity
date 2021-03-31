@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const iterations = 1000
+const iterations = 100000
 
 type Algorithm int
 
@@ -34,6 +34,7 @@ func main() {
 	fmt.Println("Benchmarking Ackley Function")
 	results = append(results, DoGeneticAlgorithms(Ackley))
 
+	fmt.Println("Creating Charts")
 	PlotResults(results)
 
 }
@@ -148,24 +149,24 @@ func CCGA1(N int, function f.Fitness, mutationP float64) ([]float64, []float64, 
 	for i:=0; i<iterations; i++ {
 		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
 
-		// Mutates each individual's own genes
-		species.Mutate(mutationP)
 		// Coevolves individuals with the best (mutated) genes from each species
-		species.Coevolve(mutationP)
+		species.Coevolve()
+		// Mutates each individual's genes
+		species.Mutate(mutationP)
 		// Re-evaluates fitness
 		species.EvalFitness(function)
 		// Finds individual with best fitness & genes in this generation
 		fitness, coevolution := species.GetBestFitness()
-		fitnessHistory = append(fitnessHistory, fitness)
 
 		if fitness < bestFitness {
 			fmt.Println("New best fitness:", fitness)
 			bestFitness = fitness
 			bestCoevolution = coevolution
 		}
+		fitnessHistory = append(fitnessHistory, bestFitness)
 
 		if i % 1000 == 0 {
-			fmt.Println(i, ":", fitness)
+			fmt.Printf("Iteration %v/%v", i, iterations)
 		}
 	}
 

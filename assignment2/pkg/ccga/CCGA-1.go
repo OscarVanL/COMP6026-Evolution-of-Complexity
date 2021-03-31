@@ -1,6 +1,7 @@
 package ccga
 
 import (
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math"
 	"math/rand"
@@ -62,31 +63,38 @@ func (pop Species) Mutate(MutationP float64) {
 	for s:=0; s<len(pop); s++ {
 		species := pop[s]
 
+		// Todo: Run in parallel for each species using goroutine
 		for i:=0; i<len(species); i++ {
 			individual := species[i]
 
-			mutatedGene := individual.Gene
-			// Mutate each of the 16 bits in the individual's uint16 gene
-			for b:=0; b<16; b++ {
-				// P probability of mutation
-				if rand.Float64() < MutationP {
-					// Perform bit-flip
-					if hasBit(mutatedGene, uint(b)) {
-						mutatedGene = clearBit(mutatedGene, uint(b))
-					} else {
-						mutatedGene = setBit(mutatedGene, uint(b))
+			mutatedCoevolution := individual.coevolution
+			for g:=0; g<len(mutatedCoevolution); g++ {
+				// Mutate each of the 16 bits in the individual's uint16 gene
+				for b:=0; b<16; b++ {
+					// P probability of mutation
+					if rand.Float64() < MutationP {
+						// Perform bit-flip
+						if hasBit(mutatedCoevolution[g], uint(b)) {
+							mutatedCoevolution[g] = clearBit(mutatedCoevolution[g], uint(b))
+						} else {
+							mutatedCoevolution[g] = setBit(mutatedCoevolution[g], uint(b))
+						}
 					}
 				}
 			}
-			// Replace individual's old gene with mutated one
-			pop[s][i].Gene = mutatedGene
+
+			// Replace individuals's coevolved gene with mutated one
+			pop[s][i].coevolution = mutatedCoevolution
+
+			//Update individual's own mutated gene too
+			pop[s][i].Gene = mutatedCoevolution[pop[s][i].SpeciesId]
 		}
 	}
 
 }
 
 // Coevolve does crossover for each individual with the best other individuals and mutates the coevolved offspring.
-func (pop Species) Coevolve(MutationP float64) {
+func (pop Species) Coevolve() {
 	// Evolve each species
 	for s:=0; s<len(pop); s++ {
 		species := pop[s]
@@ -101,10 +109,17 @@ func (pop Species) Coevolve(MutationP float64) {
 				if s == N {
 					tmpPop[N] = individual.Gene
 				} else {
-					//Todo: Two-point crossover should be used here
 					if rand.Float64() < CrossoverP {
-						// Get the species' best individual's gene (already sorted)
-						tmpPop[N] = pop[N][0].Gene
+						// Perform two-point crossover with best gene and individual's existing gene
+						offspringA, offspringB := evolution.TwoPointCrossover(pop[N][0].Gene, individual.coevolution[N])
+
+						// Randomly select one of the offspring to use
+						if rand.Intn(2) == 0 {
+							tmpPop[N] = offspringA
+						} else {
+							tmpPop[N] = offspringB
+						}
+
 					} else {
 						// Keep the existing gene, no crossover
 						tmpPop[N] = individual.coevolution[N]
@@ -118,7 +133,7 @@ func (pop Species) Coevolve(MutationP float64) {
 	}
 }
 
-// EvalFitness calculates the fitness score for each coevolved individual
+// EvalFitness calculates the fitness score for each coevolved individual. Sorts populations from fittest to least fit.
 func (pop Species) EvalFitness(fitness f.Fitness) {
 	type empty struct{}
 	spec := make(chan empty, len(pop))

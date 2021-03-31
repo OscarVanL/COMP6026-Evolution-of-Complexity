@@ -57,6 +57,8 @@ func (pop Population) Mutate(MutationP float64) {
 		// Replace individual's old genes with mutated ones
 		pop[i].Genes = mutatedGenes
 	}
+}
 
+func (pop Population) Evolve() {
 
 }
