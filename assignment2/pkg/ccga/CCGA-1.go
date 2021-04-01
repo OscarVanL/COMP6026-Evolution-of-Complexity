@@ -39,114 +39,49 @@ func (pop Species) InitCoevolutions() {
 }
 
 func (pop Species) Mutate(MutationP float32) {
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
+	type empty struct{}
+	mutate := make(chan empty, len(pop))
 
 	for s:=0; s<len(pop); s++ {
+		go func(s int) {
+			so := rand.NewSource(time.Now().UnixNano())
+			r := rand.New(so)
 
-		// Todo: Run in parallel for each species using goroutine
-		for i:=0; i<len(pop[s]); i++ {
-			individual := pop[s][i]
-			//mutatedCoevolution := pop[s][i].coevolution
-			for g:=0; g<len(pop[s][i].coevolution); g++ {
-				// Mutate each of the 16 bits in the individual's uint16 gene
-				for b:=0; b<16; b++ {
-					// P probability of mutation
-					if r.Float32() < MutationP {
-						// Perform bit-flip
-						if common.HasBit(individual.coevolution[g], uint(b)) {
-							individual.coevolution[g] = common.ClearBit(individual.coevolution[g], uint(b))
-						} else {
-							individual.coevolution[g] = common.SetBit(individual.coevolution[g], uint(b))
+			for i:=0; i<len(pop[s]); i++ {
+				individual := pop[s][i]
+				//mutatedCoevolution := pop[s][i].coevolution
+				for g:=0; g<len(pop[s][i].coevolution); g++ {
+					// Mutate each of the 16 bits in the individual's uint16 gene
+					for b:=0; b<16; b++ {
+						// P probability of mutation
+						if r.Float32() < MutationP {
+							// Perform bit-flip
+							if common.HasBit(individual.coevolution[g], uint(b)) {
+								individual.coevolution[g] = common.ClearBit(individual.coevolution[g], uint(b))
+							} else {
+								individual.coevolution[g] = common.SetBit(individual.coevolution[g], uint(b))
+							}
 						}
 					}
 				}
-			}
 
-			//Update individual's own mutated gene too
-			individual.Gene = individual.coevolution[individual.SpeciesId]
-			pop[s][i] = individual
-		}
+				//Update individual's own mutated gene too
+				individual.Gene = individual.coevolution[individual.SpeciesId]
+				pop[s][i] = individual
+			}
+			mutate <- empty{}
+		} (s)
+
 	}
 
+	for i:=0; i<len(pop); i++ { <- mutate }
 }
 
-//// Mutate performs bit-flip mutation on each of the individual's genes
-//func (pop Species) Mutate(MutationP float32) {
-//	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
-//
-//	//Checks if bit is set as position n
-//	hasBit := func(n uint16, pos uint) bool {
-//		val := n & (1 << pos)
-//		return val > 0
-//	}
-//
-//	// Sets bit at index pos to 1
-//	setBit := func(n uint16, pos uint) uint16 {
-//		n |= (1 << pos)
-//		return n
-//	}
-//
-//	// Sets bit at index pos to 0
-//	clearBit := func(n uint16, pos uint) uint16 {
-//		mask := ^(1 << pos)
-//		nTemp := int(n)
-//		nTemp &= mask
-//		return uint16(nTemp)
-//	}
-//
-//
-//	for s:=0; s<len(pop); s++ {
-//		species := pop[s]
-//
-//
-//
-//		m := make(chan Individual)
-//		// Todo: Run in parallel for each species using goroutine
-//		go func(pop Population, m chan Individual) {
-//			so := rand.NewSource(time.Now().UnixNano())
-//			r := rand.New(so)
-//
-//			for i := 0; i < len(pop); i++ {
-//				ind := pop[i]
-//
-//				for g := 0; g < len(ind.coevolution); g++ {
-//					// Mutate each of the 16 bits in the individual's uint16 gene
-//					for b := 0; b < 16; b++ {
-//						// P probability of mutation
-//						if r.Float32() < MutationP {
-//							// Perform bit-flip
-//							if hasBit(ind.coevolution[g], uint(b)) {
-//								ind.coevolution[g] = clearBit(ind.coevolution[g], uint(b))
-//							} else {
-//								ind.coevolution[g] = setBit(ind.coevolution[g], uint(b))
-//							}
-//						}
-//					}
-//				}
-//
-//				ind.Gene = ind.coevolution[ind.SpeciesId]
-//
-//				m <- ind
-//
-//			}
-//			close(m)
-//		} (species, m)
-//
-//		tmp := make([]Individual, len(species))
-//		for i:=0; i<len(species); i++ {
-//			tmp[i] = <- m
-//		}
-//
-//		pop[s] = tmp
-//	}
-//
-//}
 
 // Coevolve does crossover for each individual with the best other individuals and mutates the coevolved offspring.
 func (pop Species) Coevolve() {
 	type empty struct{}
-	spec := make(chan empty, len(pop))
+	coevolve := make(chan empty, len(pop))
 
 	// Evolve each species
 	for s:=0; s<len(pop); s++ {
@@ -178,18 +113,18 @@ func (pop Species) Coevolve() {
 				}
 				pop[s][i] = individual
 			}
-			spec <- empty{}
+			coevolve <- empty{}
 		} (s)
 
 	}
 
-	for i:=0; i<len(pop); i++ { <- spec }
+	for i:=0; i<len(pop); i++ { <- coevolve }
 }
 
 // EvalFitness calculates the fitness score for each coevolved individual. Sorts populations from fittest to least fit.
 func (pop Species) EvalFitness(fitness f.Fitness) {
 	type empty struct{}
-	spec := make(chan empty, len(pop))
+	eval := make(chan empty, len(pop))
 
 	for s:=0; s<len(pop); s++ {
 		species := pop[s]
@@ -206,12 +141,12 @@ func (pop Species) EvalFitness(fitness f.Fitness) {
 			sort.Slice(pop[s], func(i, j int) bool {
 				return pop[s][i].fitness < pop[s][j].fitness
 			})
-			spec <- empty{}
+			eval <- empty{}
 		} (s)
 	}
 
 	// Wait until all individuals have had fitness evaluated
-	for i:=0; i<len(pop); i++ { <- spec }
+	for i:=0; i<len(pop); i++ { <- eval }
 }
 
 // GetBestFitness finds the individual with the fittest (smallest) fitness score amongst the species
