@@ -16,10 +16,10 @@ const(
 func Rastrigin(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
-	for i:=0; i< RastriginN; i++ {
+	for i:=0; i<RastriginN; i++ {
 		sum += math.Pow(xScaled[i], 2) - 3*math.Cos(2*math.Pi*xScaled[i])
 	}
-	return 3*RastriginN + sum
+	return 3*float64(RastriginN) + sum
 }
 
 const(
@@ -33,10 +33,10 @@ const(
 func Schwefel(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], SchwefelMin, SchwefelMax)
 	sum := 0.0
-	for i:=0; i< SchwefelN; i++ {
+	for i:=0; i<SchwefelN; i++ {
 		sum += xScaled[i] * math.Sin(math.Sqrt(math.Abs(xScaled[i])))
 	}
-	return 418.9829*SchwefelN - sum
+	return 418.9829*float64(SchwefelN) - sum
 }
 
 const(
@@ -50,7 +50,7 @@ func Griewangk(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], GriewangkMin, GriewangkMax)
 	sigma := 0.0
 	product := 1.0
-	for i:=0; i< GriewangkN; i++ {
+	for i:=0; i<GriewangkN; i++ {
 		sigma += math.Pow(xScaled[i], 2) / 4000
 		product *= math.Cos(xScaled[i]/math.Sqrt(float64(i+1)))
 	}
@@ -68,12 +68,13 @@ const (
 func Ackley(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], AckleyMin, AckleyMax)
 	sumA, sumB := 0.0, 0.0
-	for i:=0; i< AckleyN; i++ {
+	for i:=0; i<AckleyN; i++ {
 		sumA += math.Pow(xScaled[i], 2)
 		sumB += math.Cos(2*math.Pi*xScaled[i])
 	}
-	sumA *= 1/ AckleyN
-	sumB *= 1/ AckleyN
+
+	sumA *= 1/float64(AckleyN)
+	sumB *= 1/float64(AckleyN)
 
 	return 20 + math.E - 20*math.Exp(-0.2*math.Sqrt(sumA)) - math.Exp(sumB)
 }
