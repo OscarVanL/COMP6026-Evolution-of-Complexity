@@ -1,7 +1,7 @@
 package ga
 
 import (
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math/rand"
 	"sort"
@@ -13,31 +13,8 @@ const CrossoverP = 0.6
 
 // Mutate performs bit-flip mutation on each of the individual's genes
 func (pop Population) Mutate(MutationP float32) {
-	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
-
-	//Checks if bit is set as position n
-	hasBit := func(n uint16, pos uint) bool {
-		val := n & (1 << pos)
-		return val > 0
-	}
-
-	// Sets bit at index pos to 1
-	setBit := func(n uint16, pos uint) uint16 {
-		n |= (1 << pos)
-		return n
-	}
-
-	// Sets bit at index pos to 0
-	clearBit := func(n uint16, pos uint) uint16 {
-		mask := ^(1 << pos)
-		nTemp := int(n)
-		nTemp &= mask
-		return uint16(nTemp)
-	}
-
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
-
 
 	for i:=0; i<len(pop); i++ {
 		individual := pop[i]
@@ -51,10 +28,10 @@ func (pop Population) Mutate(MutationP float32) {
 				// P probability of mutation
 				if r.Float32() < MutationP {
 					// Perform bit-flip
-					if hasBit(mutatedGenes[g], uint(b)) {
-						mutatedGenes[g] = clearBit(mutatedGenes[g], uint(b))
+					if common.HasBit(mutatedGenes[g], uint(b)) {
+						mutatedGenes[g] = common.ClearBit(mutatedGenes[g], uint(b))
 					} else {
-						mutatedGenes[g] = setBit(mutatedGenes[g], uint(b))
+						mutatedGenes[g] = common.SetBit(mutatedGenes[g], uint(b))
 					}
 				}
 			}
@@ -75,7 +52,7 @@ func (pop Population) Evolve() {
 		for g:=0; g<len(bestIndividual.Genes); g++ {
 			if r.Float32() < CrossoverP {
 				// Perform two-point crossover
-				offspringA, offspringB := evolution.TwoPointCrossover(pop[i].Genes[g], bestIndividual.Genes[g])
+				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], bestIndividual.Genes[g])
 
 				// Randomly select one of the offspring to use
 				if r.Intn(2) == 0 {

@@ -1,7 +1,7 @@
 package ccga
 
 import (
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/evolution"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"math"
 	"math/rand"
@@ -42,62 +42,36 @@ func (pop Species) Mutate(MutationP float32) {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
-	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
-
-	//Checks if bit is set as position n
-	hasBit := func(n uint16, pos uint) bool {
-		val := n & (1 << pos)
-		return val > 0
-	}
-
-	// Sets bit at index pos to 1
-	setBit := func(n uint16, pos uint) uint16 {
-		n |= (1 << pos)
-		return n
-	}
-
-	// Sets bit at index pos to 0
-	clearBit := func(n uint16, pos uint) uint16 {
-		mask := ^(1 << pos)
-		nTemp := int(n)
-		nTemp &= mask
-		return uint16(nTemp)
-	}
-
 	for s:=0; s<len(pop); s++ {
-		species := pop[s]
 
 		// Todo: Run in parallel for each species using goroutine
-		for i:=0; i<len(species); i++ {
-			individual := species[i]
-
-			mutatedCoevolution := individual.coevolution
-			for g:=0; g<len(mutatedCoevolution); g++ {
+		for i:=0; i<len(pop[s]); i++ {
+			individual := pop[s][i]
+			//mutatedCoevolution := pop[s][i].coevolution
+			for g:=0; g<len(pop[s][i].coevolution); g++ {
 				// Mutate each of the 16 bits in the individual's uint16 gene
 				for b:=0; b<16; b++ {
 					// P probability of mutation
 					if r.Float32() < MutationP {
 						// Perform bit-flip
-						if hasBit(mutatedCoevolution[g], uint(b)) {
-							mutatedCoevolution[g] = clearBit(mutatedCoevolution[g], uint(b))
+						if common.HasBit(individual.coevolution[g], uint(b)) {
+							individual.coevolution[g] = common.ClearBit(individual.coevolution[g], uint(b))
 						} else {
-							mutatedCoevolution[g] = setBit(mutatedCoevolution[g], uint(b))
+							individual.coevolution[g] = common.SetBit(individual.coevolution[g], uint(b))
 						}
 					}
 				}
 			}
 
-			// Replace individuals's coevolved gene with mutated one
-			pop[s][i].coevolution = mutatedCoevolution
-
 			//Update individual's own mutated gene too
-			pop[s][i].Gene = mutatedCoevolution[pop[s][i].SpeciesId]
+			individual.Gene = individual.coevolution[individual.SpeciesId]
+			pop[s][i] = individual
 		}
 	}
 
 }
 
-// Mutate performs bit-flip mutation on each of the individual's genes
+//// Mutate performs bit-flip mutation on each of the individual's genes
 //func (pop Species) Mutate(MutationP float32) {
 //	// N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
 //
@@ -130,6 +104,9 @@ func (pop Species) Mutate(MutationP float32) {
 //		m := make(chan Individual)
 //		// Todo: Run in parallel for each species using goroutine
 //		go func(pop Population, m chan Individual) {
+//			so := rand.NewSource(time.Now().UnixNano())
+//			r := rand.New(so)
+//
 //			for i := 0; i < len(pop); i++ {
 //				ind := pop[i]
 //
@@ -137,7 +114,7 @@ func (pop Species) Mutate(MutationP float32) {
 //					// Mutate each of the 16 bits in the individual's uint16 gene
 //					for b := 0; b < 16; b++ {
 //						// P probability of mutation
-//						if rand.Float32() < MutationP {
+//						if r.Float32() < MutationP {
 //							// Perform bit-flip
 //							if hasBit(ind.coevolution[g], uint(b)) {
 //								ind.coevolution[g] = clearBit(ind.coevolution[g], uint(b))
@@ -168,40 +145,45 @@ func (pop Species) Mutate(MutationP float32) {
 
 // Coevolve does crossover for each individual with the best other individuals and mutates the coevolved offspring.
 func (pop Species) Coevolve() {
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
+	type empty struct{}
+	spec := make(chan empty, len(pop))
 
 	// Evolve each species
 	for s:=0; s<len(pop); s++ {
 		species := pop[s]
 
-		// Evolve each individual in the species
-		for i:=0; i<len(species); i++ {
-			individual := species[i]
+		go func(s int) {
+			so := rand.NewSource(time.Now().UnixNano())
+			r := rand.New(so)
 
-			// Combine individual with best individuals from other species, if CrossoverP is met
-			tmpPop := make([]uint16, len(pop))
-			for N:=0; N<len(pop); N++ {
-				// Whether to perform crossover
-				if r.Float32() < CrossoverP {
-					// Perform two-point crossover with best gene and individual's existing gene
-					offspringA, offspringB := evolution.TwoPointCrossover(pop[N][0].Gene, individual.coevolution[N])
+			// Evolve each individual in the species
+			for i:=0; i<len(species); i++ {
 
-					// Randomly select one of the offspring to use
-					if r.Intn(2) == 0 {
-						tmpPop[N] = offspringA
-					} else {
-						tmpPop[N] = offspringB
+				individual := species[i]
+
+				// Combine individual with best individuals from other species, if CrossoverP is met
+				for N:=0; N<len(pop); N++ {
+					// Whether to perform crossover
+					if r.Float32() < CrossoverP {
+						// Perform two-point crossover with best gene and individual's existing gene
+						offspringA, offspringB := common.TwoPointCrossover(pop[N][0].Gene, individual.coevolution[N])
+
+						// Randomly select one of the offspring to use
+						if r.Intn(2) == 0 {
+							individual.coevolution[N] = offspringA
+						} else {
+							individual.coevolution[N] = offspringB
+						}
 					}
-				} else {
-					// Keep the existing gene, no crossover
-					tmpPop[N] = individual.coevolution[N]
 				}
+				pop[s][i] = individual
 			}
-			individual.coevolution = tmpPop
-			pop[s][i] = individual
-		}
+			spec <- empty{}
+		} (s)
+
 	}
+
+	for i:=0; i<len(pop); i++ { <- spec }
 }
 
 // EvalFitness calculates the fitness score for each coevolved individual. Sorts populations from fittest to least fit.
