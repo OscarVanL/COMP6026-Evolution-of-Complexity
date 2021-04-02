@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ccga"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/cheggaaa/pb"
-	"github.com/wcharczuk/go-chart"
 	"log"
 	"math"
 	"os"
@@ -42,7 +42,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	var results []EvolutionResults
+	var results []chart.EvolutionResults
 
 	fmt.Println("Benchmarking Rastrigin Function")
 	results = append(results, DoGeneticAlgorithms(Rastrigin))
@@ -54,62 +54,11 @@ func main() {
 	results = append(results, DoGeneticAlgorithms(Ackley))
 
 	fmt.Println("Creating Charts")
-	PlotResults(results)
+	chart.PlotResults(results)
 
 }
 
-func PlotResults(res []EvolutionResults) {
-	// Create a ContinuousSeries for each of the results
-	for i:=0; i<len(res); i++ {
-		result := res[i]
-
-		// Add results to a titled chart
-		graph := chart.Chart {
-			Title: result.label,
-			Series: []chart.Series{
-				chart.ContinuousSeries{
-					Name: "CCGA-1",
-					XValues: result.XValsCCGA,
-					YValues: result.YValsCCGA,
-				},
-				chart.ContinuousSeries{
-					Name: "Standard GA",
-					XValues: result.XValsGA,
-					YValues: result.YValsGA,
-				},
-			},
-		}
-
-		// Create legend for results
-		graph.Elements = []chart.Renderable{chart.Legend(&graph)}
-
-		// Save charts to PNG files
-		file, _ := os.Create(fmt.Sprintf("%s.png", result.label))
-		err := graph.Render(chart.PNG, file)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-
-
-}
-
-type EvolutionResults struct {
-	label string  // Label to represent result
-	XValsCCGA []float64  // Iteration values for X-Axis, for CCGA-1
-	YValsCCGA []float64  // Fitness values for Y-Axis, for CCGA-1
-	BestFitnessCCGA float64  // Best Fitness from CCGA-1
-	BestAssignmentCCGA []uint16  // Best assignment of function variables from CCGA-1
-
-	XValsGA []float64  // Iteration values for X-Axis, standard GA
-	YValsGA []float64  // Fitness values for Y-Axis, standard GA
-	BestFitnessGA float64  // Best Fitness from standard GA
-	BestAssignmentGA []uint16  // Best assignment of function variables from standard GA
-}
-
-
-func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
+func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
 	var label string
 	var N int
 	var function f.Fitness
@@ -150,7 +99,7 @@ func DoGeneticAlgorithms(algo Algorithm) EvolutionResults {
 	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
 	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
 
-	return EvolutionResults{label,
+	return chart.EvolutionResults{label,
 		XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA,
 		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}
 }
@@ -172,6 +121,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	species.EvalFitness(function)
 
 	for i:=0; i<iterations; i++ {
+		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
 
 		// Coevolves individuals with the best (mutated) genes from each species
@@ -217,6 +167,7 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	population.EvalFitness(function)
 
 	for i:=0; i<iterations; i++ {
+		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))
 		population.Evolve()
 		population.Mutate(mutationP)
