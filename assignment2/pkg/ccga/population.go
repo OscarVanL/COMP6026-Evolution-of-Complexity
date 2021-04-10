@@ -7,16 +7,16 @@ import (
 
 //// CCGAGenerations > CCGASpecies > CCGAPopulation > CCGAIndividual
 
-// CCGAGenerations tracks the species across iterations of CCGA
+// Generations tracks the species across iterations of CCGA
 type Generations []Species
 
-// CCGASpecies keeps the subpopulations (CCGAPopulation) that are combined to make the target function parameters
+// Species keeps the subpopulations (CCGAPopulation) that are combined to make the target function parameters
 type Species []Population
 
-// CCGAPopulation keeps the individuals (CCGAIndividual) that make a subpopulation
+// Population keeps the individuals (CCGAIndividual) that make a subpopulation
 type Population []Individual
 
-// CCGAIndividual holds the gene, evaluated fitness, and combination of individuals that achieved this fitness
+// Individual holds the gene, evaluated fitness, and combination of individuals that achieved this fitness
 type Individual struct {
 	SpeciesId int
 	Gene uint16

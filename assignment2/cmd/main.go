@@ -185,7 +185,7 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	for i:=0; i<iterations; i++ {
 		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))
-		population.SortScaledFitness()
+		//population.SortScaledFitness()
 		population.Crossover()
 		population.Mutate(mutationP)
 		population.EvalFitness(function, fMax)

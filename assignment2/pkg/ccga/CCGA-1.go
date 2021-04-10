@@ -89,22 +89,8 @@ func (pop Species) CoevolveRoulette() {
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
-		subpop := pop[N]
-
-		// Prepare selection probabilities for roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-		// Calculate total fitness for subpopulation
-		var fitnessSum float64
-		for i:=0; i<len(subpop); i++ {
-			fitnessSum += subpop[i].ScaledFitness
-		}
-
-		// Calculate fitness proportionate probability
-		var probabilitySum float64
-		for i:=0; i<len(subpop); i++ {
-			subpop[i].SelectProbability = subpop[i].ScaledFitness / fitnessSum
-			probabilitySum += subpop[i].SelectProbability
-			subpop[i].SelectProbability += probabilitySum
-		}
+		// Todo: Do all roulette setups simultaneously as goroutine
+		pop[N].RouletteSetup()
 
 		// Update Coevolution for each species on this gene
 		for sp:=0; sp<len(pop); sp++ {
@@ -123,16 +109,7 @@ func (pop Species) CoevolveRoulette() {
 
 					// Whether to use crossover (otherwise, do nothing)
 					if r.Float32() < CrossoverP {
-						// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-						number := r.Float64()
-						otherGene := pop[sp][len(pop[sp])-1].Gene  // Assign temp gene until roulette selection done
-						for p:=0; p<len(pop[sp])-1; p++ {
-							if number > pop[sp][p].SelectProbability && number < pop[sp][p+1].SelectProbability {
-								otherGene = pop[sp][p].Gene
-							}
-						}
-
-						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, otherGene)
+						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection().Gene)
 
 						// Randomly select one of the offspring to use
 						if r.Intn(2) == 0 {
@@ -145,14 +122,7 @@ func (pop Species) CoevolveRoulette() {
 				} else {
 					// Coevolution Case 2
 					// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-					number := r.Float64()
-					gene := pop[sp][len(pop[sp])-1].Gene
-					for p:=0; p<len(pop[sp])-1; p++ {
-						if number > pop[sp][p].SelectProbability && number < pop[sp][p+1].SelectProbability {
-							gene = pop[sp][p].Gene
-						}
-					}
-					pop[sp][i].Coevolution[N] = gene
+					pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection().Gene
 				}
 
 			}
@@ -160,7 +130,38 @@ func (pop Species) CoevolveRoulette() {
 
 
 	}
+}
 
+// RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.
+// Adapted from: https://stackoverflow.com/a/177278/6008271
+func (subpop Population) RouletteSetup() {
+	// Calculate total fitness for subpopulation
+	var fitnessSum float64
+	for i:=0; i<len(subpop); i++ {
+		fitnessSum += subpop[i].ScaledFitness
+	}
+
+	// Calculate fitness proportionate probability
+	var probabilitySum float64
+	for i:=0; i<len(subpop); i++ {
+		subpop[i].SelectProbability = subpop[i].ScaledFitness / fitnessSum
+		probabilitySum += subpop[i].SelectProbability
+		subpop[i].SelectProbability += probabilitySum
+	}
+}
+
+// RouletteSelection uses a roulette approach to apply higher selective pressure for individuals with better fitness
+// Adapted from: https://stackoverflow.com/a/177278/6008271
+func (subpop Population) RouletteSelection() Individual {
+	// Todo: Use binary search here, instead of linear search.
+	number := rand.Float64()
+	individual := subpop[len(subpop)-1] // Assign temp individual until roulette selection done
+	for p:=0; p<len(subpop)-1; p++ {
+		if number > subpop[p].SelectProbability && number < subpop[p+1].SelectProbability {
+			individual = subpop[p]
+		}
+	}
+	return individual
 }
 
 

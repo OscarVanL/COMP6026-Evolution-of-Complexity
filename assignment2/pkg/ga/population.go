@@ -8,17 +8,18 @@ import (
 
 //// GAGenerations > GAPopulation > GAIndividual
 
-// Generation tracks the species across iterations of the GA
+// Generations tracks the species across iterations of the GA
 type Generations []Population
 
-// GAPopulation keeps the individuals (GAIndividual) that make a the GA's population
+// Population keeps the individuals (GAIndividual) that make a the GA's population
 type Population []Individual
 
-// GAIndividual holds the genes and Fitness for an individual
+// Individual holds the genes and Fitness for an individual
 type Individual struct {
 	Genes   []uint16
 	Fitness float64
 	ScaledFitness float64
+	SelectProbability float64  // Probability of selection in Roulette Wheel
 }
 
 // InitPopulation will generate the initial population for the standard GA, each with N genes
@@ -31,7 +32,7 @@ func InitPopulation(N int, PopSize int) Population {
 		for n:=0; n<N; n++ {
 			genes[n] = uint16(rand.Int())
 		}
-		pop[i] = Individual{genes, 0.0, 0.0}
+		pop[i] = Individual{genes, 0.0, 0.0, 0.0}
 
 	}
 	return pop

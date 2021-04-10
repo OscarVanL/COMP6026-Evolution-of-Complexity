@@ -14,11 +14,10 @@ const CrossoverP = 0.6
 
 // Mutate performs bit-flip mutation on each of the individual's genes
 func (pop Population) Mutate(MutationP float32) {
-	// Todo: To implement eletist strategy, skip mutation for the best individual
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
-	for i:=0; i<len(pop); i++ {
+	for i:=1; i<len(pop); i++ {
 		individual := pop[i]
 
 		mutatedGenes := individual.Genes
@@ -44,20 +43,19 @@ func (pop Population) Mutate(MutationP float32) {
 }
 
 func (pop Population) Crossover() {
-	// Todo: To implement eletist strategy, skip mutation for the best individual
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
-	// Get individual with best Fitness
-	// Todo: Replace this with another approach, eg: roulette wheel
-	bestIndividual := pop[0]
+	pop.RouletteSetup()
 
-	for i:=0; i<len(pop); i++ {
+	for i:=1; i<len(pop); i++ {
+		rouletteGene := pop.RouletteSelection().Genes
+
 		// Do crossover for each gene
-		for g:=0; g<len(bestIndividual.Genes); g++ {
+		for g:=0; g<len(rouletteGene); g++ {
 			if r.Float32() < CrossoverP {
 				// Perform two-point crossover
-				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], bestIndividual.Genes[g])
+				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], rouletteGene[g])
 
 				// Randomly select one of the offspring to use
 				if r.Intn(2) == 0 {
@@ -70,6 +68,38 @@ func (pop Population) Crossover() {
 	}
 }
 
+// RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.
+// Adapted from: https://stackoverflow.com/a/177278/6008271
+func (pop Population) RouletteSetup() {
+	// Calculate total fitness for subpopulation
+	var fitnessSum float64
+	for i:=0; i<len(pop); i++ {
+		fitnessSum += pop[i].ScaledFitness
+	}
+
+	// Calculate fitness proportionate probability
+	var probabilitySum float64
+	for i:=0; i<len(pop); i++ {
+		pop[i].SelectProbability = pop[i].ScaledFitness / fitnessSum
+		probabilitySum += pop[i].SelectProbability
+		pop[i].SelectProbability += probabilitySum
+	}
+}
+
+// RouletteSelection uses a roulette approach to apply higher selective pressure for individuals with better fitness
+// Adapted from: https://stackoverflow.com/a/177278/6008271
+func (pop Population) RouletteSelection() Individual {
+	// Todo: Use binary search here, instead of linear search.
+	number := rand.Float64()
+	individual := pop[len(pop)-1] // Assign temp individual until roulette selection done
+	for p:=0; p<len(pop)-1; p++ {
+		if number > pop[p].SelectProbability && number < pop[p+1].SelectProbability {
+			individual = pop[p]
+		}
+	}
+	return individual
+}
+
 func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
 	for i:=0; i<len(pop); i++ {
 		// Calculate individual's Fitness
@@ -78,21 +108,12 @@ func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
 	}
 
 	pop.SortFitness()
-
-	//fmt.Println("fMax:", fMax, "BestIndividual fitness:", pop[0].Fitness, ", scaledFitness", pop[0].ScaledFitness)
 }
 
 func (pop Population) SortFitness() {
 	// Sort the populations individuals by fittest (smallest) to least fit (largest)
 	sort.Slice(pop, func(i, j int) bool {
 		return pop[i].Fitness < pop[j].Fitness
-	})
-}
-
-func (pop Population) SortScaledFitness() {
-	// In the case of the scaled fitness, larger fitness values are considered more fit.
-	sort.Slice(pop, func(i, j int) bool {
-		return pop[i].ScaledFitness > pop[j].ScaledFitness
 	})
 }
 
