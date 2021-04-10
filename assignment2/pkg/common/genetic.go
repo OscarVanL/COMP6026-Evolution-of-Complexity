@@ -1,3 +1,6 @@
+// Go bit flip operations taken from https://stackoverflow.com/a/23192263/6008271
+// Two point crossover logic adapted from: https://stackoverflow.com/a/11705889/6008271
+
 package common
 
 const (
@@ -32,19 +35,19 @@ func CalculateFMax(worstFitnessHistory []float64, W int) float64 {
 
 // N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
 
-//Checks if bit is set as position n
+// HasBit Checks if bit is set as position n
 func HasBit(n uint16, pos uint) bool {
 	val := n & (1 << pos)
 	return val > 0
 }
 
-// Sets bit at index pos to 1
+// SetBit Sets bit at index pos to 1
 func SetBit(n uint16, pos uint) uint16 {
 	n |= (1 << pos)
 	return n
 }
 
-// Sets bit at index pos to 0
+// ClearBit Sets bit at index pos to 0
 func ClearBit(n uint16, pos uint) uint16 {
 	mask := ^(1 << pos)
 	nTemp := int(n)

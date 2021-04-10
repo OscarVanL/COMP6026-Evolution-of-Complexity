@@ -1,3 +1,7 @@
+// Elements of roulette selection were adapted from: https://stackoverflow.com/questions/177271/roulette-selection-in-genetic-algorithms
+
+
+
 package ccga
 
 import (
@@ -9,7 +13,7 @@ import (
 	"time"
 )
 
-// Crossover probability
+// CrossoverP is probability of performing crossover
 const CrossoverP = 0.6
 
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.
@@ -86,6 +90,7 @@ func (pop Species) CoevolveRoulette() {
 
 		subpop := pop[N]
 
+		// Prepare selection probabilities for roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
 		// Calculate total fitness for subpopulation
 		var fitnessSum float64
 		for i:=0; i<len(subpop); i++ {
@@ -105,39 +110,47 @@ func (pop Species) CoevolveRoulette() {
 
 			for i:=0; i<len(pop[sp]); i++ {
 
-				// Pick individual 1
-				numA := r.Float64()
-				geneA := pop[sp][len(pop[sp])-1].Gene
-				for p:=0; p<len(pop[sp])-1; p++ {
-					if numA > pop[sp][p].SelectProbability && numA < pop[sp][p+1].SelectProbability {
-						geneA = pop[sp][p].Gene
-						//fmt.Println("number:", numA, "selectProb", subpop[p].SelectProbability, "Selected Gene A at index:", p, "with fitness:", subpop[p].Fitness)
-					}
-				}
+				// Two cases for updating Coevolutions:
+				//	1. We're updating the subpop member's own gene:
+				//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
+				//  2. We're picking genes for the coevolution from other subpopulations:
+				//      -> Select gene using roulette selection from these subpopulations. No crossover.
 
-				// Pick individual 2, using roulette wheel, (or keeping the individual'N existing gene if possible)
-				var geneB uint16
-				if pop[sp][i].SpeciesId != N {
-					// Pick individual 2
-					numB := r.Float64()
-					geneB = pop[sp][len(pop[sp])-1].Gene
-					for p:=0; p<len(pop[sp])-1; p++ {
-						if numB > pop[sp][p].SelectProbability && numB < pop[sp][p+1].SelectProbability {
-							geneB = pop[sp][p].Gene
+				if pop[sp][i].SpeciesId == N {
+					// Coevolution Case 1
+
+					// Whether to use crossover (otherwise, do nothing)
+					if r.Float32() < CrossoverP {
+						// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
+						number := r.Float64()
+						otherGene := pop[sp][len(pop[sp])-1].Gene  // Assign temp gene until roulette selection done
+						for p:=0; p<len(pop[sp])-1; p++ {
+							if number > pop[sp][p].SelectProbability && number < pop[sp][p+1].SelectProbability {
+								otherGene = pop[sp][p].Gene
+							}
+						}
+
+						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, otherGene)
+
+						// Randomly select one of the offspring to use
+						if r.Intn(2) == 0 {
+							pop[sp][i].Coevolution[N] = offspringA
+						} else {
+							pop[sp][i].Coevolution[N] = offspringB
 						}
 					}
+
 				} else {
-					geneB = pop[sp][i].Gene
-				}
-
-				offspringA, offspringB := common.TwoPointCrossover(geneA, geneB)
-
-
-				// Randomly select one of the offspring to use
-				if r.Intn(2) == 0 {
-					pop[sp][i].Coevolution[N] = offspringA
-				} else {
-					pop[sp][i].Coevolution[N] = offspringB
+					// Coevolution Case 2
+					// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
+					number := r.Float64()
+					gene := pop[sp][len(pop[sp])-1].Gene
+					for p:=0; p<len(pop[sp])-1; p++ {
+						if number > pop[sp][p].SelectProbability && number < pop[sp][p+1].SelectProbability {
+							gene = pop[sp][p].Gene
+						}
+					}
+					pop[sp][i].Coevolution[N] = gene
 				}
 
 			}
