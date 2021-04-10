@@ -17,7 +17,7 @@ func Rastrigin(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
 	for i:=0; i<RastriginN; i++ {
-		sum += math.Pow(xScaled[i], 2) - 3*math.Cos(2*math.Pi*xScaled[i])
+		sum += math.Pow(xScaled[i], 2) - 3.0*math.Cos(2.0*math.Pi*xScaled[i])
 	}
 	return 3*float64(RastriginN) + sum
 }
@@ -70,13 +70,13 @@ func Ackley(x []uint16) float64 {
 	sumA, sumB := 0.0, 0.0
 	for i:=0; i<AckleyN; i++ {
 		sumA += math.Pow(xScaled[i], 2)
-		sumB += math.Cos(2*math.Pi*xScaled[i])
+		sumB += math.Cos(2.0*math.Pi*xScaled[i])
 	}
 
 	sumA *= 1/float64(AckleyN)
 	sumB *= 1/float64(AckleyN)
 
-	return 20 + math.E - 20*math.Exp(-0.2*math.Sqrt(sumA)) - math.Exp(sumB)
+	return 20.0 + math.E - 20.0*math.Exp(-0.2*math.Sqrt(sumA)) - math.Exp(sumB)
 }
 
 func Rosenbrock(x []uint16) float64 {

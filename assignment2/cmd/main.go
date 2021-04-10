@@ -177,7 +177,7 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
-	population := ga.InitPopulation(N, popSize)
+	population := ga.InitPopulation(N, popSize, time.Now().Unix())
 	population.EvalFitness(function, 0)
 	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
 	fmt.Println("First fMax:", fMax)

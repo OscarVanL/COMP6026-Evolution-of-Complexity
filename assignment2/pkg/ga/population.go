@@ -2,7 +2,6 @@ package ga
 
 import (
 	"math/rand"
-	"time"
 )
 
 
@@ -23,8 +22,8 @@ type Individual struct {
 }
 
 // InitPopulation will generate the initial population for the standard GA, each with N genes
-func InitPopulation(N int, PopSize int) Population {
-	rand.Seed(time.Now().Unix())
+func InitPopulation(N int, PopSize int, seed int64) Population {
+	rand.Seed(seed)
 
 	pop := make(Population, PopSize)
 	for i:=0; i<PopSize; i++ {

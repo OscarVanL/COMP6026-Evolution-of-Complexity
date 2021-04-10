@@ -4,8 +4,8 @@
 package common
 
 const (
-	twoPointMask1 = uint16((0x0fff >> 4) << 4) // 0000 1111 1111 0000
-	twoPointMask2 = 0xffff ^ twoPointMask1     // 1111 0000 0000 1111
+	twoPointMask1 = uint16((0x0fff >> 4) << 4) // 0000 1111 1111 0000 or 0x0FF0
+	twoPointMask2 = 0xffff ^ twoPointMask1     // 1111 0000 0000 1111 or 0xF00F
 )
 
 // TwoPointCrossover creates two offspring from parent A and parent B's genes using two-point crossover
