@@ -34,17 +34,19 @@ func PlotResults(res []EvolutionResults) {
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
+				//Max: int(result.YValsCCGA[0]),
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: "function evalusations",
+			}),
+			charts.WithLegendOpts(opts.Legend{
+				Show: true,
 			}),
 		)
 
 		line.SetXAxis(result.XValsGA).
 			AddSeries("Standard GA", convertLineData(result.YValsGA)).
-			//	charts.WithLabelOpts(opts.Label{Show: true, Position: "right"})).
 			AddSeries("CCGA-1", convertLineData(result.YValsCCGA)).
-			//	charts.WithLabelOpts(opts.Label{Show: true, Position: "right"})).
 			SetSeriesOptions(
 				charts.WithLineChartOpts(opts.LineChart{
 					Smooth: true,
@@ -68,63 +70,3 @@ func convertLineData(elems []float64) []opts.LineData {
 	}
 	return points
 }
-
-
-//func PlotResults(res []EvolutionResults) {
-//	// Create a ContinuousSeries for each of the results
-//	for i:=0; i<len(res); i++ {
-//		result := res[i]
-//
-//		// Add results to a titled chart
-//		graph := chart.Chart {
-//			Title: result.Label,
-//			TitleStyle: chart.Style {
-//				FontSize: 16,
-//			},
-//			XAxis: chart.XAxis{
-//				Name: "function evaluations",
-//			},
-//			YAxis: chart.YAxis{
-//				NameStyle: chart.Style {
-//					TextRotationDegrees: 270,
-//				},
-//				AxisType: chart.YAxisSecondary,
-//				Name: "best individual",
-//			},
-//			Background: chart.Style{
-//				Padding: chart.Box{
-//					Top: 80,
-//					Left: 30,
-//				},
-//			},
-//			Series: []chart.Series{
-//				chart.ContinuousSeries{
-//					Name: "CCGA-1",
-//					XValueFormatter: chart.IntValueFormatter,
-//					XValues: result.XValsCCGA,
-//					YValues: result.YValsCCGA,
-//				},
-//				chart.ContinuousSeries{
-//					Name: "Standard GA",
-//					XValueFormatter: chart.IntValueFormatter,
-//					XValues: result.XValsGA,
-//					YValues: result.YValsGA,
-//				},
-//			},
-//		}
-//
-//		// Create legend for results
-//		graph.Elements = []chart.Renderable{chart.LegendThin(&graph)}
-//
-//		// Save charts to PNG files
-//		file, _ := os.Create(fmt.Sprintf("%s.png", result.Label))
-//
-//		graph.Width = 700
-//		graph.Height = 500
-//		err := graph.Render(chart.PNG, file)
-//
-//		if err != nil {
-//			fmt.Println(err)
-//		}
-//	}
-//}

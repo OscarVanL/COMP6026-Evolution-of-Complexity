@@ -3,6 +3,7 @@ package ga
 import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	"math"
 	"math/rand"
 	"sort"
 	"time"
@@ -13,6 +14,7 @@ const CrossoverP = 0.6
 
 // Mutate performs bit-flip mutation on each of the individual's genes
 func (pop Population) Mutate(MutationP float32) {
+	// Todo: To implement eletist strategy, skip mutation for the best individual
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
@@ -41,12 +43,15 @@ func (pop Population) Mutate(MutationP float32) {
 	}
 }
 
-func (pop Population) Evolve() {
+func (pop Population) Crossover() {
+	// Todo: To implement eletist strategy, skip mutation for the best individual
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
 	// Get individual with best Fitness
+	// Todo: Replace this with another approach, eg: roulette wheel
 	bestIndividual := pop[0]
+
 	for i:=0; i<len(pop); i++ {
 		// Do crossover for each gene
 		for g:=0; g<len(bestIndividual.Genes); g++ {
@@ -65,15 +70,29 @@ func (pop Population) Evolve() {
 	}
 }
 
-func (pop Population) EvalFitness(fitness f.Fitness) {
+func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
 	for i:=0; i<len(pop); i++ {
 		// Calculate individual's Fitness
 		pop[i].Fitness = fitness(pop[i].Genes)
+		pop[i].ScaledFitness = math.Abs(fMax - pop[i].Fitness)
 	}
 
+	pop.SortFitness()
+
+	//fmt.Println("fMax:", fMax, "BestIndividual fitness:", pop[0].Fitness, ", scaledFitness", pop[0].ScaledFitness)
+}
+
+func (pop Population) SortFitness() {
 	// Sort the populations individuals by fittest (smallest) to least fit (largest)
 	sort.Slice(pop, func(i, j int) bool {
 		return pop[i].Fitness < pop[j].Fitness
+	})
+}
+
+func (pop Population) SortScaledFitness() {
+	// In the case of the scaled fitness, larger fitness values are considered more fit.
+	sort.Slice(pop, func(i, j int) bool {
+		return pop[i].ScaledFitness > pop[j].ScaledFitness
 	})
 }
 

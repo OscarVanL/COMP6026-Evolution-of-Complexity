@@ -20,8 +20,10 @@ type Population []Individual
 type Individual struct {
 	SpeciesId int
 	Gene uint16
-	fitness float64
-	coevolution []uint16  // Combination of individuals that produced this fitness outcome
+	Fitness float64
+	ScaledFitness float64
+	SelectProbability float64 // Probability of selection in Roulette Wheel
+	Coevolution []uint16  // Combination of individuals that produced this fitness outcome
 }
 
 // InitSpecies will generate SpeciesN number of species, each of PopSize population
@@ -34,7 +36,7 @@ func InitSpecies(SpeciesN int, PopSize int) Species {
 		// Randomly generate a species
 		pop := make(Population, PopSize)
 		for i:=0; i<PopSize; i++ {
-			pop[i] = Individual{s, uint16(rand.Int()), 0.0, nil}
+			pop[i] = Individual{s, uint16(rand.Int()), 0.0, 0.0,0.0, nil}
 		}
 		species[s] = pop
 	}

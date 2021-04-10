@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ccga"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/chart"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/cheggaaa/pb"
@@ -16,6 +17,8 @@ import (
 )
 
 const iterations = 100000
+const popSize = 100
+const W = 5  // Scaling Window width
 
 type Algorithm int
 
@@ -27,7 +30,7 @@ const (
 	Rosenbrock
 )
 
-var cpuprofile = flag.String("cpuprofile", "rastrigin.prof", "write cpu profile to file")
+var cpuprofile = flag.String("cpuprofile", "assignment2.prof", "write cpu profile to file")
 
 
 func main() {
@@ -93,11 +96,12 @@ func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
 		mutationP = 1/10
 	}
 
-
 	fmt.Println("Starting standard GA with params: N:", N, "MutationP:", mutationP)
 	XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA := GA(N, function, mutationP)
 	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
 	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
+
+
 
 	return chart.EvolutionResults{label,
 		XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA,
@@ -111,33 +115,42 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	bar.ShowSpeed = true
 	bar.Start()
 
+
 	bestFitness := math.MaxFloat64
+	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestCoevolution []uint16
 	var xVal []float64
-	var fitnessHistory []float64
+	var worstFitnessHistory []float64  // Track worst fitness for each generation
+	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
-	species := ccga.InitSpecies(N, 100)
+	species := ccga.InitSpecies(N, popSize)
 	species.InitCoevolutions()
-	species.EvalFitness(function)
+	species.EvalFitness(function, 0)
+	fMax, _ = species.GetWorstFitness(popSize)  // Set initial value of f'max
 
 	for i:=0; i<iterations; i++ {
 		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
 
 		// Coevolves individuals with the best (mutated) genes from each species
-		species.Coevolve()
+		species.CoevolveRoulette()
 		// Mutates each individual's genes
 		species.Mutate(mutationP)
-		// Re-evaluates fitness
-		species.EvalFitness(function)
-		// Finds individual with best fitness & genes in this generation
-		fitness, coevolution := species.GetBestFitness()
+		// Re-evaluates bestGenFitness
+		species.EvalFitness(function, fMax)
+		// Finds individual with best bestGenFitness & genes in this generation
+		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
+		worstGenFitness, _ := species.GetWorstFitness(popSize)
 
-		if fitness < bestFitness {
-			bestFitness = fitness
-			bestCoevolution = coevolution
+		if bestGenFitness < bestFitness {
+			bestFitness = bestGenFitness
+			bestCoevolution = bestGenCoevolution
 		}
-		fitnessHistory = append(fitnessHistory, bestFitness)
+		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
+		bestFitnessHistory = append(bestFitnessHistory, bestFitness)
+
+		fMax = common.CalculateFMax(worstFitnessHistory, W)
+
 		bar.Increment()
 	}
 	bar.Finish()
@@ -148,7 +161,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	}
 	fmt.Println()
 
-	return xVal, fitnessHistory, bestFitness, bestCoevolution
+	return xVal, bestFitnessHistory, bestFitness, bestCoevolution
 }
 
 func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, float64, []uint16) {
@@ -159,26 +172,36 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	bar.Start()
 
 	bestFitness := math.MaxFloat64
+	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestGenes []uint16
 	var xVal []float64
-	var fitnessHistory []float64
+	var worstFitnessHistory []float64  // Track worst fitness for each generation
+	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
-	population := ga.InitPopulation(N, 100)
-	population.EvalFitness(function)
+	population := ga.InitPopulation(N, popSize)
+	population.EvalFitness(function, 0)
+	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
+	fmt.Println("First fMax:", fMax)
 
 	for i:=0; i<iterations; i++ {
 		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))
-		population.Evolve()
+		population.SortScaledFitness()
+		population.Crossover()
 		population.Mutate(mutationP)
-		population.EvalFitness(function)
-		fitness, gene := population[0].Fitness, population[0].Genes
-		if fitness < bestFitness {
-			bestFitness = fitness
-			bestGenes = gene
+		population.EvalFitness(function, fMax)
+		bestGenFitness, bestGenGene := population[0].Fitness, population[0].Genes
+		worstGenFitness := population[len(population)-1].Fitness
+		if bestGenFitness < bestFitness {
+			bestFitness = bestGenFitness
+			bestGenes = bestGenGene
 		}
 
-		fitnessHistory = append(fitnessHistory, bestFitness)
+		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
+		bestFitnessHistory = append(bestFitnessHistory, bestFitness)
+
+		fMax = common.CalculateFMax(worstFitnessHistory, W)
+
 		bar.Increment()
 	}
 	bar.Finish()
@@ -189,5 +212,5 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	}
 	fmt.Println()
 
-	return xVal, fitnessHistory, bestFitness, bestGenes
+	return xVal, bestFitnessHistory, bestFitness, bestGenes
 }

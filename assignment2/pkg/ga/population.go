@@ -18,6 +18,7 @@ type Population []Individual
 type Individual struct {
 	Genes   []uint16
 	Fitness float64
+	ScaledFitness float64
 }
 
 // InitPopulation will generate the initial population for the standard GA, each with N genes
@@ -30,7 +31,7 @@ func InitPopulation(N int, PopSize int) Population {
 		for n:=0; n<N; n++ {
 			genes[n] = uint16(rand.Int())
 		}
-		pop[i] = Individual{genes, 0.0}
+		pop[i] = Individual{genes, 0.0, 0.0}
 
 	}
 	return pop

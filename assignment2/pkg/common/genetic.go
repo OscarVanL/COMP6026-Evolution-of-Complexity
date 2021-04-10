@@ -13,6 +13,23 @@ func TwoPointCrossover(parentA uint16, parentB uint16) (uint16, uint16) {
 	return output1, output2
 }
 
+// CalculateFMax finds the new FMax value for Scaling Window calculations
+func CalculateFMax(worstFitnessHistory []float64, W int) float64 {
+	var worstFitnessWindow []float64
+	if len(worstFitnessHistory) < 5 {
+		worstFitnessWindow = worstFitnessHistory
+	} else {
+		worstFitnessWindow = worstFitnessHistory[len(worstFitnessHistory)-W:]
+	}
+	fMax := worstFitnessWindow[0]
+	for _, v := range worstFitnessWindow {
+		if v > fMax {
+			fMax = v
+		}
+	}
+	return fMax
+}
+
 // N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
 
 //Checks if bit is set as position n
