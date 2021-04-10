@@ -51,7 +51,8 @@ func (pop Species) Mutate(MutationP float32) {
 			so := rand.NewSource(time.Now().UnixNano())
 			r := rand.New(so)
 
-			for i:=0; i<len(pop[s]); i++ {
+			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
+			for i:=1; i<len(pop[s]); i++ {
 				individual := pop[s][i]
 				//mutatedCoevolution := pop[s][i].coevolution
 				for g:=0; g<len(pop[s][i].Coevolution); g++ {
@@ -108,7 +109,8 @@ func (pop Species) CoevolveRoulette() {
 		// Update Coevolution for each species on this gene
 		for sp:=0; sp<len(pop); sp++ {
 
-			for i:=0; i<len(pop[sp]); i++ {
+			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
+			for i:=1; i<len(pop[sp]); i++ {
 
 				// Two cases for updating Coevolutions:
 				//	1. We're updating the subpop member's own gene:

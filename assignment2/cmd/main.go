@@ -131,7 +131,6 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	for i:=0; i<iterations; i++ {
 		// Todo: Track the number of function evaluations, not GA iterations
 		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
-
 		// Coevolves individuals with the best (mutated) genes from each species
 		species.CoevolveRoulette()
 		// Mutates each individual's genes
