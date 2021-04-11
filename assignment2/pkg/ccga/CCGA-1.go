@@ -154,14 +154,23 @@ func (subpop Population) RouletteSetup() {
 // Adapted from: https://stackoverflow.com/a/177278/6008271
 func (subpop Population) RouletteSelection() Individual {
 	// Todo: Use binary search here, instead of linear search.
-	number := rand.Float64()
-	individual := subpop[len(subpop)-1] // Assign temp individual until roulette selection done
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+	number := r.Float64()
 	for p:=0; p<len(subpop)-1; p++ {
-		if number > subpop[p].SelectProbability && number < subpop[p+1].SelectProbability {
-			individual = subpop[p]
+		if p == 0 {
+			// First entry on roulette wheel, range 0.0 - Select Probability
+			if number < subpop[p].SelectProbability {
+				return subpop[p]
+			}
+		} else {
+			// SelectProbability greater than last individual, but within this individual's probability range
+			if number > subpop[p-1].SelectProbability && number < subpop[p].SelectProbability {
+				return subpop[p]
+			}
 		}
 	}
-	return individual
+	return subpop[0]
 }
 
 
@@ -226,9 +235,6 @@ func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
 				pop[s][i] = individual
 			}
 
-			// Sort the population's individuals by fittest (smallest) to least fit (largest)
-			pop[s].sortPopulation()
-
 			eval <- empty{}
 		} (s)
 	}
@@ -237,15 +243,18 @@ func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
 	for i:=0; i<len(pop); i++ { <- eval }
 }
 
-func (pop Population) sortPopulation() {
+func (spec Species) SortFitness() {
 	// Sort the population's individuals by fittest (smallest) to least fit (largest)
-	sort.Slice(pop, func(i, j int) bool {
-		return pop[i].Fitness < pop[j].Fitness
-	})
+	for s:=0; s<len(spec); s++ {
+		sort.Slice(spec[s], func(i, j int) bool {
+			return spec[s][i].Fitness <  spec[s][j].Fitness
+		})
+	}
+
 }
 
 // GetBestFitness finds the individual with the fittest (smallest) fitness score amongst the species
-// Note: Run this after sortPopulation so fitnesses are pre-sorted
+// Note: Run this after SortFitness so fitnesses are pre-sorted
 func (pop Species) GetBestFitness() (float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var bestCoevolution []uint16
@@ -259,7 +268,7 @@ func (pop Species) GetBestFitness() (float64, []uint16) {
 }
 
 // GetWorstFitness finds the individual with the least fit score amongst the species
-// Note: Run this after sortPopulation so fitnesses are pre-sorted
+// Note: Run this after SortFitness so fitnesses are pre-sorted
 func (pop Species) GetWorstFitness(popSize int) (float64, []uint16) {
 	worstFitness := 0.0
 	var worstCoevolution []uint16

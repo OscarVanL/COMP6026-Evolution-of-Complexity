@@ -78,11 +78,11 @@ func (pop Population) RouletteSetup() {
 	}
 
 	// Calculate fitness proportionate probability
-	var probabilitySum float64
+	var accumulatedProbability float64
 	for i:=0; i<len(pop); i++ {
 		pop[i].SelectProbability = pop[i].ScaledFitness / fitnessSum
-		probabilitySum += pop[i].SelectProbability
-		pop[i].SelectProbability += probabilitySum
+		pop[i].SelectProbability += accumulatedProbability
+		accumulatedProbability = pop[i].SelectProbability
 	}
 }
 
@@ -90,14 +90,23 @@ func (pop Population) RouletteSetup() {
 // Adapted from: https://stackoverflow.com/a/177278/6008271
 func (pop Population) RouletteSelection() Individual {
 	// Todo: Use binary search here, instead of linear search.
-	number := rand.Float64()
-	individual := pop[len(pop)-1] // Assign temp individual until roulette selection done
-	for p:=0; p<len(pop)-1; p++ {
-		if number > pop[p].SelectProbability && number < pop[p+1].SelectProbability {
-			individual = pop[p]
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+	number := r.Float64()
+	for p:=0; p<len(pop); p++ {
+		if p == 0 {
+			// First entry on roulette wheel, range 0.0 - Select Probability
+			if number < pop[p].SelectProbability {
+				return pop[p]
+			}
+		} else {
+			// SelectProbability greater than last individual, but within this individual's probability range
+			if number > pop[p-1].SelectProbability && number < pop[p].SelectProbability {
+				return pop[p]
+			}
 		}
 	}
-	return individual
+	return pop[0]
 }
 
 func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
@@ -106,8 +115,6 @@ func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
 		pop[i].Fitness = fitness(pop[i].Genes)
 		pop[i].ScaledFitness = math.Abs(fMax - pop[i].Fitness)
 	}
-
-	pop.SortFitness()
 }
 
 func (pop Population) SortFitness() {

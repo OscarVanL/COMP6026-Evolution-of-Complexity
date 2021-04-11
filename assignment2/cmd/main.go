@@ -135,8 +135,10 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 		species.CoevolveRoulette()
 		// Mutates each individual's genes
 		species.Mutate(mutationP)
-		// Re-evaluates bestGenFitness
+		// Re-evaluates individual fitnesses
 		species.EvalFitness(function, fMax)
+		// Sort the population's individuals by fittest (smallest) to least fit (largest)
+		species.SortFitness()
 		// Finds individual with best bestGenFitness & genes in this generation
 		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
 		worstGenFitness, _ := species.GetWorstFitness(popSize)
@@ -189,6 +191,7 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 		population.Crossover()
 		population.Mutate(mutationP)
 		population.EvalFitness(function, fMax)
+		population.SortFitness()
 		bestGenFitness, bestGenGene := population[0].Fitness, population[0].Genes
 		worstGenFitness := population[len(population)-1].Fitness
 		if bestGenFitness < bestFitness {
