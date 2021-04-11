@@ -123,7 +123,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
-	species := ccga.InitSpecies(N, popSize)
+	species := ccga.InitSpecies(N, popSize, time.Now().Unix())
 	species.InitCoevolutions()
 	species.EvalFitness(function, 0)
 	fMax, _ = species.GetWorstFitness(popSize)  // Set initial value of f'max

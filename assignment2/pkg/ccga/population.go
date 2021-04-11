@@ -2,7 +2,6 @@ package ccga
 
 import (
 	"math/rand"
-	"time"
 )
 
 //// CCGAGenerations > CCGASpecies > CCGAPopulation > CCGAIndividual
@@ -27,8 +26,8 @@ type Individual struct {
 }
 
 // InitSpecies will generate SpeciesN number of species, each of PopSize population
-func InitSpecies(SpeciesN int, PopSize int) Species {
-	rand.Seed(time.Now().Unix())
+func InitSpecies(SpeciesN int, PopSize int, seed int64) Species {
+	rand.Seed(seed)
 
 	species := make(Species, SpeciesN)
 	// Repeat process for N "genes" (species)
