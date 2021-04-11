@@ -101,8 +101,6 @@ func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
 	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
 	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
 
-
-
 	return chart.EvolutionResults{label,
 		XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA,
 		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}

@@ -109,7 +109,7 @@ func (pop Species) CoevolveRoulette() {
 
 					// Whether to use crossover (otherwise, do nothing)
 					if r.Float32() < CrossoverP {
-						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection().Gene)
+						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection(r).Gene)
 
 						// Randomly select one of the offspring to use
 						if r.Intn(2) == 0 {
@@ -122,7 +122,7 @@ func (pop Species) CoevolveRoulette() {
 				} else {
 					// Coevolution Case 2
 					// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-					pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection().Gene
+					pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection(r).Gene
 				}
 
 			}
@@ -152,10 +152,8 @@ func (subpop Population) RouletteSetup() {
 
 // RouletteSelection uses a roulette approach to apply higher selective pressure for individuals with better fitness
 // Adapted from: https://stackoverflow.com/a/177278/6008271
-func (subpop Population) RouletteSelection() Individual {
+func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 	// Todo: Use binary search here, instead of linear search.
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
 	number := r.Float64()
 	for p:=0; p<len(subpop)-1; p++ {
 		if p == 0 {

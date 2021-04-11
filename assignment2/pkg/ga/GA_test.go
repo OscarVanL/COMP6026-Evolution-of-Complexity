@@ -1,8 +1,10 @@
 package ga
 
 import (
+	"fmt"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 )
 
@@ -41,11 +43,14 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 		Individual{[]uint16{2}, 0, 0, 0.9},
 		Individual{[]uint16{3}, 0, 0, 1.0},
 	}
+	expectedSelectionRatio := []float64{0.1, 0.7, 0.1, 0.1}
 
+	s := rand.NewSource(0)
+	r := rand.New(s)
 	// Run roulette selection a large number of times
 	results := make(map[uint16]float64)
 	for i:=0; i<100000; i++ {
-		results[input.RouletteSelection().Genes[0]] += 1.0
+		results[input.RouletteSelection(r).Genes[0]] += 1.0
 	}
 
 	// Calculate ratios of each selection by roulette wheel
@@ -55,7 +60,7 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 
 	// Check probabilities of selection are correct, within a 5% margin of error to accommodate randomness
 	for i:=0; i<len(results); i++ {
-		assert.InDelta(t, input[i].ScaledFitness / 1000, results[uint16(i)], 0.05, "Roulette Selection did not sample proportionately")
+		assert.InDelta(t, expectedSelectionRatio[i], results[uint16(i)], 0.05, "Roulette Selection did not sample proportionately")
 	}
 }
 

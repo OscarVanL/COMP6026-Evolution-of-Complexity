@@ -49,7 +49,7 @@ func (pop Population) Crossover() {
 	pop.RouletteSetup()
 
 	for i:=1; i<len(pop); i++ {
-		rouletteGene := pop.RouletteSelection().Genes
+		rouletteGene := pop.RouletteSelection(r).Genes
 
 		// Do crossover for each gene
 		for g:=0; g<len(rouletteGene); g++ {
@@ -88,10 +88,8 @@ func (pop Population) RouletteSetup() {
 
 // RouletteSelection uses a roulette approach to apply higher selective pressure for individuals with better fitness
 // Adapted from: https://stackoverflow.com/a/177278/6008271
-func (pop Population) RouletteSelection() Individual {
+func (pop Population) RouletteSelection(r *rand.Rand) Individual {
 	// Todo: Use binary search here, instead of linear search.
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
 	number := r.Float64()
 	for p:=0; p<len(pop); p++ {
 		if p == 0 {
