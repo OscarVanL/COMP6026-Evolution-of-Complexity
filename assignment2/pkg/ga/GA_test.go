@@ -1,6 +1,7 @@
 package ga
 
 import (
+	"fmt"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
@@ -15,8 +16,8 @@ func TestPopulation_Mutate_ZeroProbability(t *testing.T) {
 	}
 
 	input.Mutate(0.0)
-	assert.Equal(t, uint16(0xFFFF), input[1].Genes[0])
-	assert.Equal(t, uint16(0x0000), input[1].Genes[1])
+	assert.Equal(t, uint16(0xFFFF), input[1].Genes[0], "Mutation with mutationP=0 should not change any bits")
+	assert.Equal(t, uint16(0x0000), input[1].Genes[1], "Mutation with mutationP=0 should not change any bits")
 }
 
 // TestPopulation_Mutate_OneProbability ensures all bits are mutated when MutationP is 1.0
@@ -28,8 +29,8 @@ func TestPopulation_Mutate_OneProbability(t *testing.T) {
 	}
 
 	input.Mutate(1.0)
-	assert.Equal(t, uint16(0x0000), input[1].Genes[0])
-	assert.Equal(t, uint16(0xFFFF), input[1].Genes[1])
+	assert.Equal(t, uint16(0x0000), input[1].Genes[0], "Mutation with mutationP=1 should flip every bit")
+	assert.Equal(t, uint16(0xFFFF), input[1].Genes[1], "Mutation with mutationP=1 should flip every bit")
 }
 
 // TestPopulation_Mutate_Elitist ensures elitist strategy is applied by skipping mutation on 0-index individual
@@ -42,11 +43,11 @@ func TestPopulation_Mutate_Elitist(t *testing.T) {
 	}
 
 	input.Mutate(1.0)
-	assert.Equal(t, uint16(0x0000), input[0].Genes[0])
+	assert.Equal(t, uint16(0x0000), input[0].Genes[0], "Mutation should follow elitist strategy")
 }
 
 // TestPopulation_Crossover checks that crossover operations are completed as expected
-func TestPopulation_Crossover(t *testing.T) {
+func TestPopulation_Crossover_OneProbability(t *testing.T) {
 	// To make test deterministic, create individuals with certain roulette selection probability
 	input := Population{
 		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 1.0},
@@ -58,8 +59,21 @@ func TestPopulation_Crossover(t *testing.T) {
 
 	expectedGene1 := (input[1].Genes[0] == 0x0FF0) || (input[1].Genes[0] == 0xF00F)
 	assert.True(t, expectedGene1, "Genes were not crossed over as expected")
-	expectedGene2 := (input[1].Genes[0] == 0x0FF0) || (input[1].Genes[0] == 0xF00F)
-	assert.True(t, expectedGene2, "Genes were not crossed over as expected")
+}
+
+// TestPopulation_Crossover checks that genes are kept constant with 0 crossover probability
+func TestPopulation_Crossover_ZeroProbability(t *testing.T) {
+	// To make test deterministic, create individuals with certain roulette selection probability
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 1.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 0.0},
+	}
+
+	// Crossover with 100% probability
+	input.Crossover(0.0)
+
+	assert.Equal(t, uint16(0xFFFF), input[1].Genes[0], "Genes were modified when they shouldn't")
+	assert.Equal(t, uint16(0x0000), input[1].Genes[1], "Genes were modified when they shouldn't")
 }
 
 // TestPopulation_Crossover_Elitist ensures elitist strategy is applied by skipping crossover on the 0-index individual
@@ -91,6 +105,7 @@ func TestPopulation_RouletteSetup(t *testing.T) {
 	input.RouletteSetup()
 
 	for i:=0; i<len(input); i++ {
+		fmt.Println(input[i].SelectProbability)
 		assert.InDelta(t, expectedSelectProbability[i], input[i].SelectProbability, 0.01, "Roulette Selection Probabilities were not assigned as expected")
 	}
 }
@@ -133,7 +148,6 @@ func TestPopulation_EvalFitness(t *testing.T) {
 	input.EvalFitness(f.Schwefel, 3000)
 	assert.InDelta(t, 2392.9928386744673, input[0].Fitness, 0.01, "Fitness was not calculated properly")
 	assert.InDelta(t, 607.0071613255327, input[0].ScaledFitness, 0.01, "Fitness was not calculated properly")
-
 }
 
 func TestPopulation_SortFitness(t *testing.T) {

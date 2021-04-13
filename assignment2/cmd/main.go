@@ -124,7 +124,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	species := ccga.InitSpecies(N, popSize, time.Now().Unix())
 	species.InitCoevolutions()
 	species.EvalFitness(function, 0)
-	fMax, _ = species.GetWorstFitness(popSize)  // Set initial value of f'max
+	fMax, _ = species.GetWorstFitness()  // Set initial value of f'max
 
 	for i:=0; i<iterations; i++ {
 		// Todo: Track the number of function evaluations, not GA iterations
@@ -139,7 +139,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 		species.SortFitness()
 		// Finds individual with best bestGenFitness & genes in this generation
 		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
-		worstGenFitness, _ := species.GetWorstFitness(popSize)
+		worstGenFitness, _ := species.GetWorstFitness()
 
 		if bestGenFitness < bestFitness {
 			bestFitness = bestGenFitness

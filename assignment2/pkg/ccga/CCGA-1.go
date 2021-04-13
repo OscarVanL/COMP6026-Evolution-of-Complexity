@@ -82,7 +82,7 @@ func (pop Species) Mutate(MutationP float32) {
 	for i:=0; i<len(pop); i++ { <- mutate }
 }
 
-func (pop Species) CoevolveRoulette() {
+func (pop Species) CoevolveRoulette(crossoverP float32) {
 
 	// Do Roulette to pick specific gene (N) for each coevolution
 	for N :=0; N <len(pop); N++ {
@@ -108,7 +108,7 @@ func (pop Species) CoevolveRoulette() {
 					// Coevolution Case 1
 
 					// Whether to use crossover (otherwise, do nothing)
-					if r.Float32() < CrossoverP {
+					if r.Float32() < crossoverP {
 						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection(r).Gene)
 
 						// Randomly select one of the offspring to use
@@ -142,11 +142,11 @@ func (subpop Population) RouletteSetup() {
 	}
 
 	// Calculate fitness proportionate probability
-	var probabilitySum float64
+	var accumulatedProbability float64
 	for i:=0; i<len(subpop); i++ {
 		subpop[i].SelectProbability = subpop[i].ScaledFitness / fitnessSum
-		probabilitySum += subpop[i].SelectProbability
-		subpop[i].SelectProbability += probabilitySum
+		subpop[i].SelectProbability += accumulatedProbability
+		accumulatedProbability = subpop[i].SelectProbability
 	}
 }
 
@@ -155,7 +155,7 @@ func (subpop Population) RouletteSetup() {
 func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 	// Todo: Use binary search here, instead of linear search.
 	number := r.Float64()
-	for p:=0; p<len(subpop)-1; p++ {
+	for p:=0; p<len(subpop); p++ {
 		if p == 0 {
 			// First entry on roulette wheel, range 0.0 - Select Probability
 			if number < subpop[p].SelectProbability {
@@ -171,50 +171,6 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 	return subpop[0]
 }
 
-
-// Coevolve does crossover for each individual with the best other individuals and mutates the coevolved offspring.
-//func (pop Species) Coevolve() {
-//	type empty struct{}
-//	coevolve := make(chan empty, len(pop))
-//
-//	// Crossover each species
-//	for s:=0; s<len(pop); s++ {
-//		species := pop[s]
-//
-//		go func(s int) {
-//			so := rand.NewSource(time.Now().UnixNano())
-//			r := rand.New(so)
-//
-//			// Crossover each individual in the species
-//			for i:=0; i<len(species); i++ {
-//
-//				individual := species[i]
-//
-//				// Combine individual with best individuals from other species, if CrossoverP is met
-//				for N:=0; N<len(pop); N++ {
-//					// Whether to perform crossover
-//					if r.Float32() < CrossoverP {
-//						// Perform two-point crossover with best gene and individual's existing gene
-//						offspringA, offspringB := common.TwoPointCrossover(pop[N][0].Gene, individual.Coevolution[N])
-//
-//						// Randomly select one of the offspring to use
-//						if r.Intn(2) == 0 {
-//							individual.Coevolution[N] = offspringA
-//						} else {
-//							individual.Coevolution[N] = offspringB
-//						}
-//					}
-//				}
-//				pop[s][i] = individual
-//			}
-//			coevolve <- empty{}
-//		} (s)
-//
-//	}
-//
-//	for i:=0; i<len(pop); i++ { <- coevolve }
-//}
-
 // EvalFitness calculates the fitness score for each coevolved individual. Sorts populations from fittest to least fit.
 func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
 	type empty struct{}
@@ -226,11 +182,9 @@ func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
 		// Evaluate each individual's fitness
 		go func(s int) {
 			for i:=0; i<len(species); i++ {
-				individual := species[i]
 				// Calculate fitness while applying fMax scaling window
-				individual.Fitness = fitness(individual.Coevolution)
-				individual.ScaledFitness = math.Abs(fMax - individual.Fitness)
-				pop[s][i] = individual
+				pop[s][i].Fitness = fitness(pop[s][i].Coevolution)
+				pop[s][i].ScaledFitness = math.Abs(fMax - pop[s][i].Fitness)
 			}
 
 			eval <- empty{}
@@ -267,9 +221,11 @@ func (pop Species) GetBestFitness() (float64, []uint16) {
 
 // GetWorstFitness finds the individual with the least fit score amongst the species
 // Note: Run this after SortFitness so fitnesses are pre-sorted
-func (pop Species) GetWorstFitness(popSize int) (float64, []uint16) {
+func (pop Species) GetWorstFitness() (float64, []uint16) {
+	popSize := len(pop[0])
 	worstFitness := 0.0
 	var worstCoevolution []uint16
+
 	for s:=0; s<len(pop); s++ {
 		if pop[s][popSize-1].Fitness > worstFitness {
 			worstFitness = pop[s][popSize-1].Fitness

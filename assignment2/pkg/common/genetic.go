@@ -33,7 +33,6 @@ func CalculateFMax(worstFitnessHistory []float64, W int) float64 {
 	return fMax
 }
 
-
 // N.B. Bit manipulation inner-functions are taken from Stack Overflow. Source: https://stackoverflow.com/a/23192263/6008271
 
 // HasBit Checks if bit is set as position n
