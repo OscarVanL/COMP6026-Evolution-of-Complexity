@@ -42,7 +42,7 @@ func (pop Population) Mutate(MutationP float32) {
 	}
 }
 
-func (pop Population) Crossover() {
+func (pop Population) Crossover(crossoverP float32) {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
@@ -53,7 +53,7 @@ func (pop Population) Crossover() {
 
 		// Do crossover for each gene
 		for g:=0; g<len(rouletteGene); g++ {
-			if r.Float32() < CrossoverP {
+			if r.Float32() < crossoverP {
 				// Perform two-point crossover
 				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], rouletteGene[g])
 

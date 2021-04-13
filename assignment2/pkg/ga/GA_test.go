@@ -1,19 +1,80 @@
 package ga
 
 import (
-	"fmt"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 )
 
-func TestPopulation_Mutate(t *testing.T) {
+// TestPopulation_Mutate_ZeroProbability ensures no mutations occur when MutationP is 0.0
+func TestPopulation_Mutate_ZeroProbability(t *testing.T) {
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 0.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 0.0},
+	}
 
+	input.Mutate(0.0)
+	assert.Equal(t, uint16(0xFFFF), input[1].Genes[0])
+	assert.Equal(t, uint16(0x0000), input[1].Genes[1])
 }
 
-func TestPopulation_Crossover(t *testing.T) {
+// TestPopulation_Mutate_OneProbability ensures all bits are mutated when MutationP is 1.0
+func TestPopulation_Mutate_OneProbability(t *testing.T) {
+	// To make test deterministic use 100% probability, meaning every bit should be flipped
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 0.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 0.0},
+	}
 
+	input.Mutate(1.0)
+	assert.Equal(t, uint16(0x0000), input[1].Genes[0])
+	assert.Equal(t, uint16(0xFFFF), input[1].Genes[1])
+}
+
+// TestPopulation_Mutate_Elitist ensures elitist strategy is applied by skipping mutation on 0-index individual
+// When pre-sorted, the 0-index individual is the one with highest fitness, so is preserved without mutation.
+func TestPopulation_Mutate_Elitist(t *testing.T) {
+	// To make test deterministic use 100% probability, meaning every bit should be flipped
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 0.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 0.0},
+	}
+
+	input.Mutate(1.0)
+	assert.Equal(t, uint16(0x0000), input[0].Genes[0])
+}
+
+// TestPopulation_Crossover checks that crossover operations are completed as expected
+func TestPopulation_Crossover(t *testing.T) {
+	// To make test deterministic, create individuals with certain roulette selection probability
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 1.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 0.0},
+	}
+
+	// Crossover with 100% probability
+	input.Crossover(1.0)
+
+	expectedGene1 := (input[1].Genes[0] == 0x0FF0) || (input[1].Genes[0] == 0xF00F)
+	assert.True(t, expectedGene1, "Genes were not crossed over as expected")
+	expectedGene2 := (input[1].Genes[0] == 0x0FF0) || (input[1].Genes[0] == 0xF00F)
+	assert.True(t, expectedGene2, "Genes were not crossed over as expected")
+}
+
+// TestPopulation_Crossover_Elitist ensures elitist strategy is applied by skipping crossover on the 0-index individual
+// When pre-sorted, the 0-index individual is the one with highest fitness, and is preserved without genetic functions.
+func TestPopulation_Crossover_Elitist(t *testing.T) {
+	// To make test deterministic, create individuals with certain roulette selection probability
+	input := Population{
+		Individual{[]uint16{0x0000, 0xFFFF}, 0, 0, 0.0},
+		Individual{[]uint16{0xFFFF, 0x0000}, 0, 0, 1.0},
+	}
+
+	// Crossover with 100% probability
+	input.Crossover(1.0)
+	
+	assert.Equal(t, uint16(0x0000), input[0].Genes[0], "Genes for 0-index individual should remain unchanged")
 }
 
 // TestPopulation_RouletteSetup tests if the roulette setup assigns SelectProbabilities correctly.
@@ -54,7 +115,7 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 	}
 
 	// Calculate ratios of each selection by roulette wheel
-	for k, _ := range results {
+	for k := range results {
 		results[k] /= 100000
 	}
 
