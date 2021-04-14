@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ccga"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/chart"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/ga"
-	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ccga"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ga"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"github.com/cheggaaa/pb"
 	"log"
 	"math"
@@ -106,29 +106,32 @@ func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
 		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}
 }
 
-func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, float64, []uint16) {
+func CCGA1(N int, function f.Fitness, mutationP float32) ([]int, []float64, float64, []uint16) {
 	bar := pb.New(iterations)
 	bar.SetRefreshRate(time.Second)
 	bar.ShowTimeLeft = true
 	bar.ShowSpeed = true
 	bar.Start()
 
-
 	bestFitness := math.MaxFloat64
 	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestCoevolution []uint16
-	var xVal []float64
+	var xVal []int
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
 	species := ccga.InitSpecies(N, popSize, time.Now().Unix())
 	species.InitCoevolutions()
 	species.EvalFitness(function, 0)
+	species.SortFitness()
+	fitness, _ := species.GetBestFitness()
+	xVal = append(xVal, 0)
+	bestFitnessHistory = append(bestFitnessHistory, fitness)
 	fMax, _ = species.GetWorstFitness()  // Set initial value of f'max
 
 	for i:=0; i<iterations; i++ {
-		// Todo: Track the number of function evaluations, not GA iterations
-		xVal = append(xVal, float64(i+1))  // Evolution iteration for X-Axis
+		// Todo: Track the number of function evaluations, not GA iterations?
+		xVal = append(xVal, i+1)  // Evolution iteration for X-Axis
 		// Coevolves individuals with the best (mutated) genes from each species
 		species.CoevolveRoulette(ccga.CrossoverP)
 		// Mutates each individual's genes
@@ -163,7 +166,7 @@ func CCGA1(N int, function f.Fitness, mutationP float32) ([]float64, []float64, 
 	return xVal, bestFitnessHistory, bestFitness, bestCoevolution
 }
 
-func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, float64, []uint16) {
+func GA(N int, function f.Fitness, mutationP float32) ([]int, []float64, float64, []uint16) {
 	bar := pb.New(iterations)
 	bar.SetRefreshRate(time.Second)
 	bar.ShowTimeLeft = true
@@ -173,18 +176,21 @@ func GA(N int, function f.Fitness, mutationP float32) ([]float64, []float64, flo
 	bestFitness := math.MaxFloat64
 	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestGenes []uint16
-	var xVal []float64
+	var xVal []int
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
 	population := ga.InitPopulation(N, popSize, time.Now().Unix())
 	population.EvalFitness(function, 0)
+	population.SortFitness()
+	xVal = append(xVal, 0)
+	bestFitnessHistory = append(bestFitnessHistory, population[0].Fitness)
 	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
 	fmt.Println("First fMax:", fMax)
 
 	for i:=0; i<iterations; i++ {
-		// Todo: Track the number of function evaluations, not GA iterations
-		xVal = append(xVal, float64(i+1))
+		// Todo: Track the number of function evaluations, not GA iterations?
+		xVal = append(xVal, i+1)
 		//population.SortScaledFitness()
 		population.Crossover(ga.CrossoverP)
 		population.Mutate(mutationP)

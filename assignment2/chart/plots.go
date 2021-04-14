@@ -10,12 +10,12 @@ import (
 
 type EvolutionResults struct {
 	Label string  // Label to represent result
-	XValsCCGA []float64  // Iteration values for X-Axis, for CCGA-1
+	XValsCCGA []int  // Iteration values for X-Axis, for CCGA-1
 	YValsCCGA []float64  // Fitness values for Y-Axis, for CCGA-1
 	BestFitnessCCGA float64  // Best Fitness from CCGA-1
 	BestAssignmentCCGA []uint16  // Best assignment of function variables from CCGA-1
 
-	XValsGA []float64  // Iteration values for X-Axis, standard GA
+	XValsGA []int  // Iteration values for X-Axis, standard GA
 	YValsGA []float64  // Fitness values for Y-Axis, standard GA
 	BestFitnessGA float64  // Best Fitness from standard GA
 	BestAssignmentGA []uint16  // Best assignment of function variables from standard GA
@@ -29,15 +29,20 @@ func PlotResults(res []EvolutionResults) {
 		line := charts.NewLine()
 
 		line.SetGlobalOptions(
+			charts.WithInitializationOpts(opts.Initialization{
+				PageTitle: "Comparison of standard GA and CCGA-1 performance",
+				Width: "625px",
+				Height: "450px",
+			}),
 			charts.WithTitleOpts(opts.Title{
 				Title: result.Label,
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
-				//Max: int(result.YValsCCGA[0]),
+				Max: int(result.YValsCCGA[0]),
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
-				Name: "function evalusations",
+				Name: "function\nevals",
 			}),
 			charts.WithLegendOpts(opts.Legend{
 				Show: true,

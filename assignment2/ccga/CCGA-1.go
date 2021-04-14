@@ -5,11 +5,12 @@
 package ccga
 
 import (
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
-	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -84,6 +85,9 @@ func (pop Species) Mutate(MutationP float32) {
 
 func (pop Species) CoevolveRoulette(crossoverP float32) {
 
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(len(pop))
+
 	// Do Roulette to pick specific gene (N) for each coevolution
 	for N :=0; N <len(pop); N++ {
 		so := rand.NewSource(time.Now().UnixNano())
@@ -92,44 +96,47 @@ func (pop Species) CoevolveRoulette(crossoverP float32) {
 		// Todo: Do all roulette setups simultaneously as goroutine
 		pop[N].RouletteSetup()
 
-		// Update Coevolution for each species on this gene
-		for sp:=0; sp<len(pop); sp++ {
+		go func(N int) {
+			// Update Coevolution for each species on this gene
+			for sp := 0; sp < len(pop); sp++ {
 
-			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
-			for i:=1; i<len(pop[sp]); i++ {
+				// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
+				for i := 1; i < len(pop[sp]); i++ {
 
-				// Two cases for updating Coevolutions:
-				//	1. We're updating the subpop member's own gene:
-				//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
-				//  2. We're picking genes for the coevolution from other subpopulations:
-				//      -> Select gene using roulette selection from these subpopulations. No crossover.
+					// Two cases for updating Coevolutions:
+					//	1. We're updating the subpop member's own gene:
+					//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
+					//  2. We're picking genes for the coevolution from other subpopulations:
+					//      -> Select gene using roulette selection from these subpopulations. No crossover.
 
-				if pop[sp][i].SpeciesId == N {
-					// Coevolution Case 1
+					if pop[sp][i].SpeciesId == N {
+						// Coevolution Case 1
 
-					// Whether to use crossover (otherwise, do nothing)
-					if r.Float32() < crossoverP {
-						offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection(r).Gene)
+						// Whether to use crossover (otherwise, do nothing)
+						if r.Float32() < crossoverP {
+							offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection(r).Gene)
 
-						// Randomly select one of the offspring to use
-						if r.Intn(2) == 0 {
-							pop[sp][i].Coevolution[N] = offspringA
-						} else {
-							pop[sp][i].Coevolution[N] = offspringB
+							// Randomly select one of the offspring to use
+							if r.Intn(2) == 0 {
+								pop[sp][i].Coevolution[N] = offspringA
+							} else {
+								pop[sp][i].Coevolution[N] = offspringB
+							}
 						}
+
+					} else {
+						// Coevolution Case 2
+						// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
+						pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection(r).Gene
 					}
 
-				} else {
-					// Coevolution Case 2
-					// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-					pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection(r).Gene
 				}
-
 			}
-		}
-
-
+			waitGroup.Done()
+		}(N)
 	}
+
+	waitGroup.Wait()
 }
 
 // RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.
@@ -171,8 +178,9 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 	return subpop[0]
 }
 
-// EvalFitness calculates the fitness score for each coevolved individual. Sorts populations from fittest to least fit.
-func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
+// EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
+// Return number of fitness evaluations
+func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) int {
 	type empty struct{}
 	eval := make(chan empty, len(pop))
 
@@ -193,6 +201,7 @@ func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) {
 
 	// Wait until all individuals have had fitness evaluated
 	for i:=0; i<len(pop); i++ { <- eval }
+	return len(pop) * len(pop[0])
 }
 
 func (spec Species) SortFitness() {

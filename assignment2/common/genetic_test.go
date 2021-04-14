@@ -27,6 +27,20 @@ func TestTwoPointCrossoverArbitrary(t *testing.T) {
 	assert.Equal(t, output2, uint16(58577), fmt.Sprintf("Invalid two-point crossover result"))
 }
 
+func TestCalculateFMax(t *testing.T) {
+	fitnesswindow := []float64{123.0, 321.0, 242.0}
+	fMax := CalculateFMax(fitnesswindow, 5)
+	assert.Equal(t, 321.0, fMax, "CalculateFMax did not get largest fitness score")
+
+	fitnesswindow = []float64{123.0, 321.0, 242.0, 452.0, 12.0}
+	fMax = CalculateFMax(fitnesswindow, 5)
+	assert.Equal(t, 452.0, fMax, "CalculateFMax did not get largest fitness score")
+
+	fitnesswindow = []float64{999.0, 123.0, 999.0, 242.0, 452.0, 12.0, 125.0, 124.0}
+	fMax = CalculateFMax(fitnesswindow, 5)
+	assert.Equal(t, 452.0, fMax, "CalculateFMax did not get largest fitness score within window")
+}
+
 func TestHasBit(t *testing.T) {
 	// Test all bits
 	for pos:=0; pos<16; pos++ {
@@ -37,10 +51,8 @@ func TestHasBit(t *testing.T) {
 		assert.False(t, HasBit(uint16(0x0000), uint(pos)), fmt.Sprintf("Unexpected bit at index: %d", pos))
 	}
 	// Test number '1234'.
-	//bits1234 := []bool{false, false, false, false, false, false, true, false, true, true, false, true, false, false, true, false}
 	bits1234 := []bool{false, true, false, false, true, false, true, true, false, false, true, false, false, false, false, false}
 	for pos:=0; pos<16; pos++ {
-		fmt.Println(HasBit(uint16(1234), uint(pos)))
 		assert.Equal(t, bits1234[pos], HasBit(uint16(1234), uint(pos)), fmt.Sprintf("Unexpected bit at index: %d", pos))
 	}
 }

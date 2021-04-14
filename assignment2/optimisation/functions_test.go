@@ -1,7 +1,6 @@
 package optimisation
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -43,7 +42,6 @@ func TestScaleInputs(t *testing.T) {
 	min := 0.0
 	max := 6553.5
 	scaled := scaleInputs(input, min, max)
-	fmt.Println(scaled)
 	for i:=0; i<len(input); i++ {
 		assert.InDelta(t, float64(input[i])/10, scaled[i], 0.01, "ScaleInputs did not scale inputs correctly")
 	}

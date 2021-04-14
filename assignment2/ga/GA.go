@@ -1,8 +1,8 @@
 package ga
 
 import (
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/common"
-	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"math"
 	"math/rand"
 	"sort"
@@ -49,13 +49,15 @@ func (pop Population) Crossover(crossoverP float32) {
 	pop.RouletteSetup()
 
 	for i:=1; i<len(pop); i++ {
-		rouletteGene := pop.RouletteSelection(r).Genes
+		rouletteGenes1 := pop.RouletteSelection(r).Genes
+		//rouletteGenes2 := pop.RouletteSelection(r).Genes
 
 		// Do crossover for each gene
-		for g:=0; g<len(rouletteGene); g++ {
+		for g:=0; g<len(rouletteGenes1); g++ {
 			if r.Float32() < crossoverP {
 				// Perform two-point crossover
-				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], rouletteGene[g])
+				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], rouletteGenes1[g])
+				//offspringA, offspringB := common.TwoPointCrossover(rouletteGenes2[g], rouletteGenes1[g])
 
 				// Randomly select one of the offspring to use
 				if r.Intn(2) == 0 {
@@ -107,12 +109,15 @@ func (pop Population) RouletteSelection(r *rand.Rand) Individual {
 	return pop[0]
 }
 
-func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) {
+// EvalFitness checks the fitness of an individual's genes and updates its Fitness & ScaledFitness scores.
+// Return number of fitness evaluations
+func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) int {
 	for i:=0; i<len(pop); i++ {
 		// Calculate individual's Fitness
 		pop[i].Fitness = fitness(pop[i].Genes)
 		pop[i].ScaledFitness = math.Abs(fMax - pop[i].Fitness)
 	}
+	return len(pop)
 }
 
 func (pop Population) SortFitness() {

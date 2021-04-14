@@ -19,7 +19,7 @@ func TwoPointCrossover(parentA uint16, parentB uint16) (uint16, uint16) {
 // CalculateFMax finds the new FMax value for Scaling Window calculations
 func CalculateFMax(worstFitnessHistory []float64, W int) float64 {
 	var worstFitnessWindow []float64
-	if len(worstFitnessHistory) < 5 {
+	if len(worstFitnessHistory) < W {
 		worstFitnessWindow = worstFitnessHistory
 	} else {
 		worstFitnessWindow = worstFitnessHistory[len(worstFitnessHistory)-W:]

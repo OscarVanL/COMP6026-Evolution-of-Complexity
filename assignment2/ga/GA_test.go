@@ -2,7 +2,7 @@ package ga
 
 import (
 	"fmt"
-	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"

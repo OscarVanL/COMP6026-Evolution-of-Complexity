@@ -1,8 +1,7 @@
 package ccga
 
 import (
-	"fmt"
-	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/pkg/optimisation"
+	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
@@ -100,7 +99,6 @@ func TestSpecies_CoevolveRoulette_OneProbability(t *testing.T) {
 	
 	expectedGene1 := (input[0][1].Coevolution[0] == 0x0FF0) || (input[0][1].Coevolution[0] == 0xF00F)
 	assert.True(t, expectedGene1, "Genes were not crossed over as expected")
-	fmt.Println(input[1][1].Coevolution[0])
 	
 	expectedGene2 := (input[1][1].Coevolution[1] == 0x0FF0) || (input[1][1].Coevolution[1] == 0xF00F)
 	assert.True(t, expectedGene2, "Genes were not crossed over as expected")
@@ -121,7 +119,7 @@ func TestSpecies_CoevolveRoulette_ZeroProbability(t *testing.T) {
 	input.CoevolveRoulette(0.0)
 
 	assert.Equal(t, uint16(0xFFFF), input[0][1].Coevolution[0], "Coevolved genes should not change when crossoverP is 0")
-	assert.Equal(t, uint16(0x0000), input[1][1].Coevolution[0], "Coevolved genes should not change when crossoverP is 0")
+	assert.Equal(t, uint16(0xFFFF), input[1][1].Coevolution[0], "Coevolved genes should not change when crossoverP is 0")
 }
 
 // TestSpecies_CoevolveRoulette_Elitist ensures elitist strategy is applied by skipping crossover on the 0-index individual of each species
@@ -206,8 +204,6 @@ func TestSpecies_EvalFitness(t *testing.T) {
 	}
 
 	input.EvalFitness(f.Schwefel, 3000)
-	fmt.Println(input[1][0].Fitness)
-	fmt.Println(input[1][0].ScaledFitness)
 
 	assert.InDelta(t, 2392.9928386744673, input[0][0].Fitness, 0.01, "Fitness was not calculated properly")
 	assert.InDelta(t, 607.0071613255327, input[0][0].ScaledFitness, 0.01, "Fitness was not calculated properly")
