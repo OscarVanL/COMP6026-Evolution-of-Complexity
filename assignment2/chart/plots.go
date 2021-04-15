@@ -10,22 +10,29 @@ import (
 
 type EvolutionResults struct {
 	Label string  // Label to represent result
-	XValsCCGA []int  // Iteration values for X-Axis, for CCGA-1
-	YValsCCGA []float64  // Fitness values for Y-Axis, for CCGA-1
+	Iterations int  // Number of function evaluations represented in chart
+	CCGAFitnessHistory []BestFitness  // Best fitness over time for CCGA
 	BestFitnessCCGA float64  // Best Fitness from CCGA-1
-	BestAssignmentCCGA []uint16  // Best assignment of function variables from CCGA-1
 
-	XValsGA []int  // Iteration values for X-Axis, standard GA
-	YValsGA []float64  // Fitness values for Y-Axis, standard GA
+	GAFitnessHistory []BestFitness  // Best fitness over time for GA
 	BestFitnessGA float64  // Best Fitness from standard GA
-	BestAssignmentGA []uint16  // Best assignment of function variables from standard GA
+}
+
+type BestFitness struct {
+	X int
+	Fitness float64
 }
 
 func PlotResults(res []EvolutionResults) {
 	page := components.NewPage()
+	xVals := initXValsSlice(res[0].Iterations)
 
 	for i:=0; i<len(res); i++ {
 		result := res[i]
+		// Take best fitness history and fill in the gaps so data can be plotted
+		yValsCCGA := fillMissingPoints(result.Iterations, result.CCGAFitnessHistory)
+		yValsGA := fillMissingPoints(result.Iterations, result.GAFitnessHistory)
+
 		line := charts.NewLine()
 
 		line.SetGlobalOptions(
@@ -39,7 +46,7 @@ func PlotResults(res []EvolutionResults) {
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
-				Max: int(result.YValsCCGA[0]),
+				Max: int(yValsCCGA[0]),
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: "function\nevals",
@@ -49,9 +56,9 @@ func PlotResults(res []EvolutionResults) {
 			}),
 		)
 
-		line.SetXAxis(result.XValsGA).
-			AddSeries("Standard GA", convertLineData(result.YValsGA)).
-			AddSeries("CCGA-1", convertLineData(result.YValsCCGA)).
+		line.SetXAxis(xVals).
+			AddSeries("Standard GA", convertLineData(yValsGA)).
+			AddSeries("CCGA-1", convertLineData(yValsCCGA)).
 			SetSeriesOptions(
 				charts.WithLineChartOpts(opts.LineChart{
 					Smooth: true,
@@ -66,6 +73,38 @@ func PlotResults(res []EvolutionResults) {
 		panic(err)
 	}
 	_ = page.Render(io.MultiWriter(f))
+}
+
+func initXValsSlice(iterations int) []int {
+	xVals := make([]int, iterations)
+	for i:=0; i<iterations; i++ {
+		xVals[i] = i
+	}
+	return xVals
+}
+
+
+// fillMissingPoints fills in gaps in results data so that scores are properly spaced on plots
+func fillMissingPoints(iterations int, BestFitnessHistory []BestFitness) []float64 {
+	yVals := make([]float64, iterations)
+
+	lastStart := 0
+	for score:=0; score<len(BestFitnessHistory); score++ {
+		bestScore := BestFitnessHistory[score].Fitness
+
+		if score == len(BestFitnessHistory)-1 {
+			for i:=lastStart; i<iterations; i++ {
+				yVals[i] = bestScore
+			}
+		} else {
+			for i:=lastStart; i<BestFitnessHistory[score+1].X; i++ {
+				yVals[i] = bestScore
+			}
+			lastStart = BestFitnessHistory[score+1].X
+		}
+	}
+
+	return yVals
 }
 
 func convertLineData(elems []float64) []opts.LineData {

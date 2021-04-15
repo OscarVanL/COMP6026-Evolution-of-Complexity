@@ -5,18 +5,14 @@ import (
 	"fmt"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ccga"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
-	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
-	"github.com/cheggaaa/pb"
 	"log"
-	"math"
 	"os"
 	"runtime/pprof"
-	"time"
 )
 
-const iterations = 100000
+const iterations = 1000000
 const popSize = 100
 const W = 5  // Scaling Window width
 
@@ -37,31 +33,31 @@ func main() {
 
 	if *cpuprofile != "" {
 		fmt.Println(*cpuprofile)
-		f, err := os.Create(*cpuprofile)
+		prof, err := os.Create(*cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		_ = pprof.StartCPUProfile(f)
+		_ = pprof.StartCPUProfile(prof)
 		defer pprof.StopCPUProfile()
 	}
 
 	var results []chart.EvolutionResults
 
 	fmt.Println("Benchmarking Rastrigin Function")
-	results = append(results, DoGeneticAlgorithms(Rastrigin))
+	results = append(results, RunGAs(Rastrigin))
 	fmt.Println("Benchmarking Schwefel Function")
-	results = append(results, DoGeneticAlgorithms(Schwefel))
+	results = append(results, RunGAs(Schwefel))
 	fmt.Println("Benchmarking Griewangk Function")
-	results = append(results, DoGeneticAlgorithms(Griewangk))
+	results = append(results, RunGAs(Griewangk))
 	fmt.Println("Benchmarking Ackley Function")
-	results = append(results, DoGeneticAlgorithms(Ackley))
+	results = append(results, RunGAs(Ackley))
 
 	fmt.Println("Creating Charts")
 	chart.PlotResults(results)
 
 }
 
-func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
+func RunGAs(algo Algorithm) chart.EvolutionResults {
 	var label string
 	var N int
 	var function f.Fitness
@@ -97,126 +93,31 @@ func DoGeneticAlgorithms(algo Algorithm) chart.EvolutionResults {
 	}
 
 	fmt.Println("Starting standard GA with params: N:", N, "MutationP:", mutationP)
-	XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA := GA(N, function, mutationP)
+	YValsGA, BestFitnessGA, BestAssignmentGA := ga.Run(iterations, popSize, N, function, mutationP, W)
 	fmt.Println("Starting CCGA-1 with params: N:", N, "MutationP:", mutationP)
-	XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := CCGA1(N, function, mutationP)
+	YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(iterations, popSize, N, function, mutationP, W)
 
-	return chart.EvolutionResults{label,
-		XValsCCGA, YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA,
-		XValsGA, YValsGA, BestFitnessGA, BestAssignmentGA}
-}
-
-func CCGA1(N int, function f.Fitness, mutationP float32) ([]int, []float64, float64, []uint16) {
-	bar := pb.New(iterations)
-	bar.SetRefreshRate(time.Second)
-	bar.ShowTimeLeft = true
-	bar.ShowSpeed = true
-	bar.Start()
-
-	bestFitness := math.MaxFloat64
-	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
-	var bestCoevolution []uint16
-	var xVal []int
-	var worstFitnessHistory []float64  // Track worst fitness for each generation
-	var bestFitnessHistory []float64  // Track best overall fitness across all generations
-
-	species := ccga.InitSpecies(N, popSize, time.Now().Unix())
-	species.InitCoevolutions()
-	species.EvalFitness(function, 0)
-	species.SortFitness()
-	fitness, _ := species.GetBestFitness()
-	xVal = append(xVal, 0)
-	bestFitnessHistory = append(bestFitnessHistory, fitness)
-	fMax, _ = species.GetWorstFitness()  // Set initial value of f'max
-
-	for i:=0; i<iterations; i++ {
-		// Todo: Track the number of function evaluations, not GA iterations?
-		xVal = append(xVal, i+1)  // Evolution iteration for X-Axis
-		// Coevolves individuals with the best (mutated) genes from each species
-		species.CoevolveRoulette(ccga.CrossoverP)
-		// Mutates each individual's genes
-		species.Mutate(mutationP)
-		// Re-evaluates individual fitnesses
-		species.EvalFitness(function, fMax)
-		// Sort the population's individuals by fittest (smallest) to least fit (largest)
-		species.SortFitness()
-		// Finds individual with best bestGenFitness & genes in this generation
-		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
-		worstGenFitness, _ := species.GetWorstFitness()
-
-		if bestGenFitness < bestFitness {
-			bestFitness = bestGenFitness
-			bestCoevolution = bestGenCoevolution
-		}
-		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
-		bestFitnessHistory = append(bestFitnessHistory, bestFitness)
-
-		fMax = common.CalculateFMax(worstFitnessHistory, W)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	fmt.Println("Best Coevolution fitness:", bestFitness, ". Parameters:")
-	for i:=0; i<len(bestCoevolution); i++ {
-		fmt.Print(bestCoevolution[i], ", ")
+	fmt.Println("Best GA fitness:", BestFitnessGA, ". Parameters:")
+	for i:=0; i<len(BestAssignmentGA); i++ {
+		fmt.Print(BestAssignmentGA[i], ", ")
 	}
 	fmt.Println()
 
-	return xVal, bestFitnessHistory, bestFitness, bestCoevolution
-}
-
-func GA(N int, function f.Fitness, mutationP float32) ([]int, []float64, float64, []uint16) {
-	bar := pb.New(iterations)
-	bar.SetRefreshRate(time.Second)
-	bar.ShowTimeLeft = true
-	bar.ShowSpeed = true
-	bar.Start()
-
-	bestFitness := math.MaxFloat64
-	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
-	var bestGenes []uint16
-	var xVal []int
-	var worstFitnessHistory []float64  // Track worst fitness for each generation
-	var bestFitnessHistory []float64  // Track best overall fitness across all generations
-
-	population := ga.InitPopulation(N, popSize, time.Now().Unix())
-	population.EvalFitness(function, 0)
-	population.SortFitness()
-	xVal = append(xVal, 0)
-	bestFitnessHistory = append(bestFitnessHistory, population[0].Fitness)
-	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
-	fmt.Println("First fMax:", fMax)
-
-	for i:=0; i<iterations; i++ {
-		// Todo: Track the number of function evaluations, not GA iterations?
-		xVal = append(xVal, i+1)
-		//population.SortScaledFitness()
-		population.Crossover(ga.CrossoverP)
-		population.Mutate(mutationP)
-		population.EvalFitness(function, fMax)
-		population.SortFitness()
-		bestGenFitness, bestGenGene := population[0].Fitness, population[0].Genes
-		worstGenFitness := population[len(population)-1].Fitness
-		if bestGenFitness < bestFitness {
-			bestFitness = bestGenFitness
-			bestGenes = bestGenGene
-		}
-
-		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
-		bestFitnessHistory = append(bestFitnessHistory, bestFitness)
-
-		fMax = common.CalculateFMax(worstFitnessHistory, W)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	fmt.Println("Best GA fitness:", bestFitness, ". Parameters:")
-	for i:=0; i<len(bestGenes); i++ {
-		fmt.Print(bestGenes[i], ", ")
+	fmt.Println("Best CCGA fitness:", BestFitnessCCGA, ". Parameters:")
+	for i:=0; i<len(BestAssignmentCCGA); i++ {
+		fmt.Print(BestAssignmentCCGA[i], ", ")
 	}
 	fmt.Println()
 
-	return xVal, bestFitnessHistory, bestFitness, bestGenes
+	return chart.EvolutionResults{
+		Label: label,
+		Iterations: iterations,
+		CCGAFitnessHistory: YValsCCGA,
+		BestFitnessCCGA: BestFitnessCCGA,
+		GAFitnessHistory: YValsGA,
+		BestFitnessGA: BestFitnessGA,
+	}
 }
+
+
+

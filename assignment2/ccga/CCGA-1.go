@@ -5,8 +5,10 @@
 package ccga
 
 import (
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
+	"github.com/cheggaaa/pb"
 	"math"
 	"math/rand"
 	"sort"
@@ -17,46 +19,98 @@ import (
 // CrossoverP is probability of performing crossover
 const CrossoverP = 0.6
 
+func Run(iterations int, popSize int, N int, function f.Fitness, mutationP float32, W int) ([]chart.BestFitness, float64, []uint16) {
+	bar := pb.New(iterations)
+	bar.SetRefreshRate(time.Second)
+	bar.ShowTimeLeft = true
+	bar.ShowSpeed = true
+	bar.Start()
+
+	bestFitness := math.MaxFloat64
+	var evals int
+	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
+	var bestCoevolution []uint16
+	var worstFitnessHistory []float64  // Track worst fitness for each generation
+	var bestFitnessHistory []chart.BestFitness
+	//var bestFitnessHistory []float64  // Track best overall fitness across all generations
+
+	species := InitSpecies(N, popSize, time.Now().Unix())
+	species.InitCoevolutions()
+	evals += species.EvalFitness(function, 0)
+	species.SortFitness()
+	fitness, _ := species.GetBestFitness()
+	bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: fitness})
+	fMax, _ = species.GetWorstFitness()  // Set initial value of f'max
+
+	for evals<iterations {
+		// Todo: Track the number of function evaluations, not GA iterations?
+		// Coevolves individuals with the best (mutated) genes from each species
+		species.CoevolveRoulette(CrossoverP)
+		// Mutates each individual's genes
+		species.Mutate(mutationP)
+		// Re-evaluates individual fitnesses
+		evals += species.EvalFitness(function, fMax)
+		// Sort the population's individuals by fittest (smallest) to least fit (largest)
+		species.SortFitness()
+		// Finds individual with best bestGenFitness & genes in this generation
+		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
+		worstGenFitness, _ := species.GetWorstFitness()
+
+		if bestGenFitness < bestFitness {
+			bestFitness = bestGenFitness
+			bestCoevolution = bestGenCoevolution
+			bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: fitness})
+		}
+		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
+		fMax = common.CalculateFMax(worstFitnessHistory, W)
+
+		bar.Set(evals)
+	}
+	bar.Finish()
+
+	return bestFitnessHistory, bestFitness, bestCoevolution
+}
+
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.
-func (pop Species) InitCoevolutions() {
+func (spec Species) InitCoevolutions() {
 	// Evaluate each species
-	for s :=0; s<len(pop); s++ {
-		species := pop[s]
+	for s :=0; s<len(spec); s++ {
+		species := spec[s]
 		// Evaluate each individual in the species
 		for i := 0; i<len(species); i++ {
 			individual := species[i]
 
 			// Combining individual with random individuals from each other species to calculate initial fitness
-			tmpPop := make([]uint16, len(pop))
-			for N:=0; N <len(pop); N++ {
+			tmpPop := make([]uint16, len(spec))
+			for N:=0; N <len(spec); N++ {
 				if s == N {
 					// Keep the evaluated individual for its gene
 					tmpPop[N] = individual.Gene
 				} else {
 					// Use a random individual from the other species genes
-					tmpPop[N] = pop[N][rand.Intn(len(pop[N]))].Gene
+					tmpPop[N] = spec[N][rand.Intn(len(spec[N]))].Gene
 				}
 			}
 			individual.Coevolution = tmpPop
-			pop[s][i] = individual
+			spec[s][i] = individual
 		}
 	}
 }
 
-func (pop Species) Mutate(MutationP float32) {
+func (spec Species) Mutate(MutationP float32) {
 	type empty struct{}
-	mutate := make(chan empty, len(pop))
+	mutate := make(chan empty, len(spec))
 
-	for s:=0; s<len(pop); s++ {
+	for s:=0; s<len(spec); s++ {
 		go func(s int) {
 			so := rand.NewSource(time.Now().UnixNano())
 			r := rand.New(so)
 
 			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
-			for i:=1; i<len(pop[s]); i++ {
-				individual := pop[s][i]
+			for i:=1; i<len(spec[s]); i++ {
+				individual := spec[s][i]
 				//mutatedCoevolution := pop[s][i].coevolution
-				for g:=0; g<len(pop[s][i].Coevolution); g++ {
+				for g:=0; g<len(spec[s][i].Coevolution); g++ {
 					// Mutate each of the 16 bits in the individual's uint16 gene
 					for b:=0; b<16; b++ {
 						// P probability of mutation
@@ -73,35 +127,35 @@ func (pop Species) Mutate(MutationP float32) {
 
 				//Update individual's own mutated gene too
 				individual.Gene = individual.Coevolution[individual.SpeciesId]
-				pop[s][i] = individual
+				spec[s][i] = individual
 			}
 			mutate <- empty{}
 		} (s)
 
 	}
 
-	for i:=0; i<len(pop); i++ { <- mutate }
+	for i:=0; i<len(spec); i++ { <- mutate }
 }
 
-func (pop Species) CoevolveRoulette(crossoverP float32) {
+func (spec Species) CoevolveRoulette(crossoverP float32) {
 
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(pop))
+	waitGroup.Add(len(spec))
 
 	// Do Roulette to pick specific gene (N) for each coevolution
-	for N :=0; N <len(pop); N++ {
+	for N :=0; N <len(spec); N++ {
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
 		// Todo: Do all roulette setups simultaneously as goroutine
-		pop[N].RouletteSetup()
+		spec[N].RouletteSetup()
 
 		go func(N int) {
 			// Update Coevolution for each species on this gene
-			for sp := 0; sp < len(pop); sp++ {
+			for sp := 0; sp < len(spec); sp++ {
 
 				// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
-				for i := 1; i < len(pop[sp]); i++ {
+				for i := 1; i < len(spec[sp]); i++ {
 
 					// Two cases for updating Coevolutions:
 					//	1. We're updating the subpop member's own gene:
@@ -109,25 +163,25 @@ func (pop Species) CoevolveRoulette(crossoverP float32) {
 					//  2. We're picking genes for the coevolution from other subpopulations:
 					//      -> Select gene using roulette selection from these subpopulations. No crossover.
 
-					if pop[sp][i].SpeciesId == N {
+					if spec[sp][i].SpeciesId == N {
 						// Coevolution Case 1
 
 						// Whether to use crossover (otherwise, do nothing)
 						if r.Float32() < crossoverP {
-							offspringA, offspringB := common.TwoPointCrossover(pop[sp][i].Gene, pop[sp].RouletteSelection(r).Gene)
+							offspringA, offspringB := common.TwoPointCrossover(spec[sp][i].Gene, spec[sp].RouletteSelection(r).Gene)
 
 							// Randomly select one of the offspring to use
 							if r.Intn(2) == 0 {
-								pop[sp][i].Coevolution[N] = offspringA
+								spec[sp][i].Coevolution[N] = offspringA
 							} else {
-								pop[sp][i].Coevolution[N] = offspringB
+								spec[sp][i].Coevolution[N] = offspringB
 							}
 						}
 
 					} else {
 						// Coevolution Case 2
 						// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
-						pop[sp][i].Coevolution[N] = pop[sp].RouletteSelection(r).Gene
+						spec[sp][i].Coevolution[N] = spec[sp].RouletteSelection(r).Gene
 					}
 
 				}
@@ -180,19 +234,19 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
 // Return number of fitness evaluations
-func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) int {
+func (spec Species) EvalFitness(fitness f.Fitness, fMax float64) int {
 	type empty struct{}
-	eval := make(chan empty, len(pop))
+	eval := make(chan empty, len(spec))
 
-	for s:=0; s<len(pop); s++ {
-		species := pop[s]
+	for s:=0; s<len(spec); s++ {
+		species := spec[s]
 
 		// Evaluate each individual's fitness
 		go func(s int) {
 			for i:=0; i<len(species); i++ {
 				// Calculate fitness while applying fMax scaling window
-				pop[s][i].Fitness = fitness(pop[s][i].Coevolution)
-				pop[s][i].ScaledFitness = math.Abs(fMax - pop[s][i].Fitness)
+				spec[s][i].Fitness = fitness(spec[s][i].Coevolution)
+				spec[s][i].ScaledFitness = math.Abs(fMax - spec[s][i].Fitness)
 			}
 
 			eval <- empty{}
@@ -200,8 +254,8 @@ func (pop Species) EvalFitness(fitness f.Fitness, fMax float64) int {
 	}
 
 	// Wait until all individuals have had fitness evaluated
-	for i:=0; i<len(pop); i++ { <- eval }
-	return len(pop) * len(pop[0])
+	for i:=0; i<len(spec); i++ { <- eval }
+	return len(spec) * len(spec[0])
 }
 
 func (spec Species) SortFitness() {
@@ -216,13 +270,13 @@ func (spec Species) SortFitness() {
 
 // GetBestFitness finds the individual with the fittest (smallest) fitness score amongst the species
 // Note: Run this after SortFitness so fitnesses are pre-sorted
-func (pop Species) GetBestFitness() (float64, []uint16) {
+func (spec Species) GetBestFitness() (float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var bestCoevolution []uint16
-	for s:=0; s<len(pop); s++ {
-		if pop[s][0].Fitness < bestFitness {
-			bestFitness = pop[s][0].Fitness
-			bestCoevolution = pop[s][0].Coevolution
+	for s:=0; s<len(spec); s++ {
+		if spec[s][0].Fitness < bestFitness {
+			bestFitness = spec[s][0].Fitness
+			bestCoevolution = spec[s][0].Coevolution
 		}
 	}
 	return bestFitness, bestCoevolution
@@ -230,15 +284,15 @@ func (pop Species) GetBestFitness() (float64, []uint16) {
 
 // GetWorstFitness finds the individual with the least fit score amongst the species
 // Note: Run this after SortFitness so fitnesses are pre-sorted
-func (pop Species) GetWorstFitness() (float64, []uint16) {
-	popSize := len(pop[0])
+func (spec Species) GetWorstFitness() (float64, []uint16) {
+	popSize := len(spec[0])
 	worstFitness := 0.0
 	var worstCoevolution []uint16
 
-	for s:=0; s<len(pop); s++ {
-		if pop[s][popSize-1].Fitness > worstFitness {
-			worstFitness = pop[s][popSize-1].Fitness
-			worstCoevolution = pop[s][popSize-1].Coevolution
+	for s:=0; s<len(spec); s++ {
+		if spec[s][popSize-1].Fitness > worstFitness {
+			worstFitness = spec[s][popSize-1].Fitness
+			worstCoevolution = spec[s][popSize-1].Coevolution
 		}
 	}
 	return worstFitness, worstCoevolution

@@ -27,6 +27,53 @@ func TestTwoPointCrossoverArbitrary(t *testing.T) {
 	assert.Equal(t, output2, uint16(58577), fmt.Sprintf("Invalid two-point crossover result"))
 }
 
+// TestTwoPointCrossoverGA_HalfMask tests the crossover where the crossover point crosses within a uint16
+func TestTwoPointCrossoverGA_HalfMask(t *testing.T) {
+	inputA := []uint16{0xFFFF, 0x0000, 0x0F0F, 0x0FF0, 0x0000, 0xFFFF}
+	inputB := []uint16{0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF}
+	offspringA, offspringB, err := TwoPointCrossoverGA(inputA, inputB)
+	if err != nil{
+		fmt.Println(err)
+		t.Fail()
+	}
+
+	expectedA := []uint16{0xFFFF, 0x00BB, 0xCCCC, 0xDDDD, 0xEE00, 0xFFFF}
+	expectedB := []uint16{0xAAAA, 0xBB00, 0x0F0F, 0x0FF0, 0x00EE, 0xFFFF}
+	assert.Equal(t, offspringA, expectedA, "Offspring should have two-point crossover")
+	assert.Equal(t, offspringB, expectedB, "Offspring should have two-point crossover")
+}
+
+// TestTwoPointCrossoverGA_FullMask tests the crossover where it can be done neatly without mask tricks (size of genes are a multiple of 4)
+func TestTwoPointCrossoverGA_FullMask(t *testing.T) {
+	// Test 1: Ensure correct bits chosen from each parent
+	inputA := []uint16{0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}
+	inputB := []uint16{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}
+	offspringA, offspringB, err := TwoPointCrossoverGA(inputA, inputB)
+	if err != nil{
+		fmt.Println(err)
+		t.Fail()
+	}
+
+	expectedA := []uint16{0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0xFFFF}
+	expectedB := []uint16{0x0000, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000}
+	assert.Equal(t, offspringA, expectedA, "Offspring should have two-point crossover")
+	assert.Equal(t, offspringB, expectedB, "Offspring should have two-point crossover")
+
+	// Test 2: Ensure masks do not overwrite content
+	inputA = []uint16{0x0000, 0x1111, 0x2222, 0x3333}
+	inputB = []uint16{0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD}
+	offspringA, offspringB, err = TwoPointCrossoverGA(inputA, inputB)
+	if err != nil{
+		fmt.Println(err)
+		t.Fail()
+	}
+	expectedA = []uint16{0x0000, 0xBBBB, 0xCCCC, 0x3333}
+	expectedB = []uint16{0xAAAA, 0x1111, 0x2222, 0xDDDD}
+	assert.Equal(t, offspringA, expectedA, "Offspring should have two-point crossover")
+	assert.Equal(t, offspringB, expectedB, "Offspring should have two-point crossover")
+}
+
+
 func TestCalculateFMax(t *testing.T) {
 	fitnesswindow := []float64{123.0, 321.0, 242.0}
 	fMax := CalculateFMax(fitnesswindow, 5)

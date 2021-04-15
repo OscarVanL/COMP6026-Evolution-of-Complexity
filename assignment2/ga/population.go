@@ -5,10 +5,7 @@ import (
 )
 
 
-//// GAGenerations > GAPopulation > GAIndividual
-
-// Generations tracks the species across iterations of the GA
-type Generations []Population
+//// GAPopulation > GAIndividual
 
 // Population keeps the individuals (GAIndividual) that make a the GA's population
 type Population []Individual

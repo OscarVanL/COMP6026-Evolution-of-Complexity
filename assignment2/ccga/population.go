@@ -4,10 +4,7 @@ import (
 	"math/rand"
 )
 
-//// CCGAGenerations > CCGASpecies > CCGAPopulation > CCGAIndividual
-
-// Generations tracks the species across iterations of CCGA
-type Generations []Species
+//// CCGASpecies > CCGAPopulation > CCGAIndividual
 
 // Species keeps the subpopulations (CCGAPopulation) that are combined to make the target function parameters
 type Species []Population
@@ -27,7 +24,8 @@ type Individual struct {
 
 // InitSpecies will generate SpeciesN number of species, each of PopSize population
 func InitSpecies(SpeciesN int, PopSize int, seed int64) Species {
-	rand.Seed(seed)
+	s := rand.NewSource(seed)
+	r := rand.New(s)
 
 	species := make(Species, SpeciesN)
 	// Repeat process for N "genes" (species)
@@ -35,7 +33,7 @@ func InitSpecies(SpeciesN int, PopSize int, seed int64) Species {
 		// Randomly generate a species
 		pop := make(Population, PopSize)
 		for i:=0; i<PopSize; i++ {
-			pop[i] = Individual{s, uint16(rand.Int()), 0.0, 0.0,0.0, nil}
+			pop[i] = Individual{s, uint16(r.Int()), 0.0, 0.0,0.0, nil}
 		}
 		species[s] = pop
 	}
