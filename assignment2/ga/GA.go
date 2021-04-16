@@ -13,53 +13,85 @@ import (
 	"time"
 )
 
-// Crossover probability
-const CrossoverP = 0.6
+const (
+	CrossoverP = 0.6  // Probability of performing crossover
+	W = 5  // Scaling Window width
+)
 
-func Run(iterations int, popSize int, N int, function f.Fitness, mutationP float32, W int) ([]chart.BestFitness, float64, []uint16) {
-	bar := pb.New(iterations)
-	bar.SetRefreshRate(time.Second)
-	bar.ShowTimeLeft = true
-	bar.ShowSpeed = true
-	bar.Start()
-
+func Run(evaluations int, generations int, popSize int, N int, function f.Fitness, mutationP float32) ([]chart.BestFitness, float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var evals int
 	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestGenes []uint16
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []chart.BestFitness
-	//var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
+	// Initialise GA's population
 	population := InitPopulation(N, popSize, time.Now().Unix())
 	evals += population.EvalFitness(function, 0)
 	population.SortFitness()
 	bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: population[0].Fitness})
 	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
-	fmt.Println("First fMax:", fMax)
 
-	for evals<iterations {
-		// Todo: Track the number of function evaluations, not GA iterations?
-		//population.SortScaledFitness()
-		population.Crossover(CrossoverP)
-		population.Mutate(mutationP)
-		evals += population.EvalFitness(function, fMax)
-		population.SortFitness()
-		bestGenFitness, bestGenGene := population[0].Fitness, population[0].Genes
-		worstGenFitness := population[len(population)-1].Fitness
-		if bestGenFitness < bestFitness {
-			bestFitness = bestGenFitness
-			bestGenes = bestGenGene
-			bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: population[0].Fitness})
+	if evaluations != 0 {
+		// Run GA for N function evaluations
+		fmt.Println("Running GA for", evaluations, "function evaluations.")
+		bar := pb.New(evaluations)
+		bar.SetRefreshRate(time.Second)
+		bar.ShowTimeLeft = true
+		bar.ShowSpeed = true
+		bar.Start()
+
+		for evals<evaluations {
+			population.doGeneration(function, mutationP, 0, &evals, &fMax, &bestFitness, &bestGenes, &bestFitnessHistory, &worstFitnessHistory)
+			bar.Set(evals)
 		}
-		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
-		fMax = common.CalculateFMax(worstFitnessHistory, W)
+		bar.Finish()
+	} else if generations != 0 {
+		// Run GA for N generations
+		fmt.Println("Running GA for", generations, "generations.")
+		bar := pb.New(generations)
+		bar.SetRefreshRate(time.Second)
+		bar.ShowTimeLeft = true
+		bar.ShowSpeed = true
+		bar.Start()
 
-		bar.Set(evals)
+		for gen:=0; gen<generations; gen++ {
+			population.doGeneration(function, mutationP, gen, &evals, &fMax, &bestFitness, &bestGenes, &bestFitnessHistory, &worstFitnessHistory)
+			bar.Increment()
+		}
+		bar.Finish()
 	}
-	bar.Finish()
 
 	return bestFitnessHistory, bestFitness, bestGenes
+}
+
+
+func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestGenes *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
+	// Perform two-point crossover for each individual
+	*evals += pop.Crossover(CrossoverP, function)
+	// Mutate each individual's genes
+	pop.Mutate(mutationP)
+	// Re-evaluates individual fitness
+	*evals += pop.EvalFitness(function, *fMax)
+	// Sort the population's individuals by fittest (smallest) to least fit (largest)
+	pop.SortFitness()
+	// Finds individual with best fitness & genes in this generation
+	bestGenFitness, bestGenGene := pop[0].Fitness, pop[0].Genes
+	worstGenFitness := pop[len(pop)-1].Fitness
+
+	if bestGenFitness < *bestFitness {
+		*bestFitness = bestGenFitness
+		*bestGenes = bestGenGene
+		if gen != 0 {
+			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: gen, Fitness: bestGenFitness})
+		} else {
+			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: *evals, Fitness: bestGenFitness})
+		}
+
+	}
+	*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
+	*fMax = common.CalculateFMax(*worstFitnessHistory, W)
 }
 
 // Mutate performs bit-flip mutation on each of the individual's genes
@@ -92,7 +124,7 @@ func (pop Population) Mutate(MutationP float32) {
 	}
 }
 
-func (pop Population) Crossover(crossoverP float32) {
+func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) int {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
@@ -108,36 +140,17 @@ func (pop Population) Crossover(crossoverP float32) {
 				os.Exit(1)
 			}
 
-			// Todo: Try picking the best offspring, rather than randomly select.
-			if r.Intn(2) == 0 {
-				pop[i].Genes = offspringA
-			} else {
+			fitnessA, fitnessB := fitness(offspringA), fitness(offspringB)
+
+			if fitnessA > fitnessB {
 				pop[i].Genes = offspringB
+			} else {
+				pop[i].Genes = offspringA
 			}
 		}
 	}
 
-	for i:=1; i<len(pop); i++ {
-		rouletteGenes1 := pop.RouletteSelection(r).Genes
-		//rouletteGenes2 := pop.RouletteSelection(r).Genes
-
-		// Check whether to use crossover for this individual
-		if r.Float32() < crossoverP {
-			// Do crossover for each gene
-			for g:=0; g<len(pop[i].Genes); g++ {
-				// Perform two-point crossover
-				offspringA, offspringB := common.TwoPointCrossover(pop[i].Genes[g], rouletteGenes1[g])
-
-				// Randomly select one of the offspring to use
-				// Todo: Try picking the best offspring, rather than randomly select.
-				if r.Intn(2) == 0 {
-					pop[i].Genes[g] = offspringA
-				} else {
-					pop[i].Genes[g] = offspringB
-				}
-			}
-		}
-	}
+	return 2
 }
 
 // RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.

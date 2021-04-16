@@ -2,9 +2,41 @@ package optimisation
 
 import (
 	"math"
+	"reflect"
 )
 
 type Fitness func(x []uint16) float64
+
+func GetParams(algo Fitness) (string, int, float32) {
+	var label string
+	var N int
+	var mutationP float32
+
+	switch reflect.ValueOf(algo).Pointer() {
+		case reflect.ValueOf(Rastrigin).Pointer():
+			label = "Rastrigin Function"
+			N = RastriginN
+			mutationP = RastriginMutationP
+		case reflect.ValueOf(Schwefel).Pointer():
+			label = "Schwefel Function"
+			N = SchwefelN
+			mutationP = SchwefelMutationP
+		case reflect.ValueOf(Griewangk).Pointer():
+			label = "Griewangk Function"
+			N = GriewangkN
+			mutationP = GriewangkMutationP
+		case reflect.ValueOf(Ackley).Pointer():
+			label = "Ackley Function"
+			N = AckleyN
+			mutationP = AckleyMutationP
+		case reflect.ValueOf(Rosenbrock).Pointer():
+			// Todo: Write Rosenbrock function
+			label = "Rosenbrock Function"
+			N = 10
+			mutationP = 1/10
+	}
+	return label, N, mutationP
+}
 
 const(
 	RastriginN = 20
@@ -16,7 +48,7 @@ const(
 func Rastrigin(x []uint16) float64 {
 	xScaled := scaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
-	for i:=0; i< RastriginN; i++ {
+	for i:=0; i<RastriginN; i++ {
 		sum += math.Pow(xScaled[i], 2) - 3.0*math.Cos(2.0*math.Pi*xScaled[i])
 	}
 	return 3*float64(RastriginN) + sum

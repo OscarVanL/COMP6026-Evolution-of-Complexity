@@ -9,8 +9,9 @@ import (
 )
 
 type EvolutionResults struct {
-	Label string  // Label to represent result
-	Iterations int  // Number of function evaluations represented in chart
+	Title string  // Title to represent result
+	XLabel string  // Label to give X Axis
+	Iterations int  // Number of function evaluations represented in charts
 	CCGAFitnessHistory []BestFitness  // Best fitness over time for CCGA
 	BestFitnessCCGA float64  // Best Fitness from CCGA-1
 
@@ -18,12 +19,14 @@ type EvolutionResults struct {
 	BestFitnessGA float64  // Best Fitness from standard GA
 }
 
+
+
 type BestFitness struct {
 	X int
 	Fitness float64
 }
 
-func PlotResults(res []EvolutionResults) {
+func PlotResults(output string, res []EvolutionResults) {
 	page := components.NewPage()
 	xVals := initXValsSlice(res[0].Iterations)
 
@@ -42,14 +45,14 @@ func PlotResults(res []EvolutionResults) {
 				Height: "450px",
 			}),
 			charts.WithTitleOpts(opts.Title{
-				Title: result.Label,
+				Title: result.Title,
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
 				Max: int(yValsCCGA[0]),
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
-				Name: "function\nevals",
+				Name: result.XLabel,
 			}),
 			charts.WithLegendOpts(opts.Legend{
 				Show: true,
@@ -68,7 +71,7 @@ func PlotResults(res []EvolutionResults) {
 		page.AddCharts(line)
 	}
 
-	f, err := os.Create("charts.html")
+	f, err := os.Create(output)
 	if err != nil {
 		panic(err)
 	}

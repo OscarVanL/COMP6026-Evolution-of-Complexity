@@ -5,6 +5,7 @@
 package ccga
 
 import (
+	"fmt"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
@@ -16,24 +17,20 @@ import (
 	"time"
 )
 
-// CrossoverP is probability of performing crossover
-const CrossoverP = 0.6
+const(
+	CrossoverP = 0.6  // Probability of performing crossover
+	W = 5  // Scaling Window width
+)
 
-func Run(iterations int, popSize int, N int, function f.Fitness, mutationP float32, W int) ([]chart.BestFitness, float64, []uint16) {
-	bar := pb.New(iterations)
-	bar.SetRefreshRate(time.Second)
-	bar.ShowTimeLeft = true
-	bar.ShowSpeed = true
-	bar.Start()
-
+func Run(evaluations int, generations int, popSize int, N int, function f.Fitness, mutationP float32) ([]chart.BestFitness, float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var evals int
 	var fMax float64  // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
 	var bestCoevolution []uint16
 	var worstFitnessHistory []float64  // Track worst fitness for each generation
 	var bestFitnessHistory []chart.BestFitness
-	//var bestFitnessHistory []float64  // Track best overall fitness across all generations
 
+	// Initialise CCGA-1's population
 	species := InitSpecies(N, popSize, time.Now().Unix())
 	species.InitCoevolutions()
 	evals += species.EvalFitness(function, 0)
@@ -42,33 +39,63 @@ func Run(iterations int, popSize int, N int, function f.Fitness, mutationP float
 	bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: fitness})
 	fMax, _ = species.GetWorstFitness()  // Set initial value of f'max
 
-	for evals<iterations {
-		// Todo: Track the number of function evaluations, not GA iterations?
-		// Coevolves individuals with the best (mutated) genes from each species
-		species.CoevolveRoulette(CrossoverP)
-		// Mutates each individual's genes
-		species.Mutate(mutationP)
-		// Re-evaluates individual fitnesses
-		evals += species.EvalFitness(function, fMax)
-		// Sort the population's individuals by fittest (smallest) to least fit (largest)
-		species.SortFitness()
-		// Finds individual with best bestGenFitness & genes in this generation
-		bestGenFitness, bestGenCoevolution := species.GetBestFitness()
-		worstGenFitness, _ := species.GetWorstFitness()
+	if evaluations != 0 {
+		// Run CCGA for N function evaluations
+		fmt.Println("Running CCGA-1 for", evaluations, "function evaluations.")
+		bar := pb.New(evaluations)
+		bar.SetRefreshRate(time.Second)
+		bar.ShowTimeLeft = true
+		bar.ShowSpeed = true
+		bar.Start()
 
-		if bestGenFitness < bestFitness {
-			bestFitness = bestGenFitness
-			bestCoevolution = bestGenCoevolution
-			bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: fitness})
+		for evals<evaluations {
+			species.doGeneration(function, mutationP, 0, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
+			bar.Set(evals)
 		}
-		worstFitnessHistory = append(worstFitnessHistory, worstGenFitness)
-		fMax = common.CalculateFMax(worstFitnessHistory, W)
+		bar.Finish()
+	} else if generations != 0 {
+		// Run CCGA for N generations
+		fmt.Println("Running CCGA-1 for", generations, "generations.")
+		bar := pb.New(generations)
+		bar.SetRefreshRate(time.Second)
+		bar.ShowTimeLeft = true
+		bar.ShowSpeed = true
+		bar.Start()
 
-		bar.Set(evals)
+		for gen:=0; gen<generations; gen++ {
+			species.doGeneration(function, mutationP, gen, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
+			bar.Increment()
+		}
+		bar.Finish()
 	}
-	bar.Finish()
 
 	return bestFitnessHistory, bestFitness, bestCoevolution
+}
+
+func (spec Species) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
+	// Coevolves individuals with the best (mutated) genes from each species
+	spec.CoevolveRoulette(CrossoverP)
+	// Mutates each individual's genes
+	spec.Mutate(mutationP)
+	// Re-evaluates individual fitnesses
+	*evals += spec.EvalFitness(function, *fMax)
+	// Sort the population's individuals by fittest (smallest) to least fit (largest)
+	spec.SortFitness()
+	// Finds individual with best fitness & genes in this generation
+	bestGenFitness, bestGenCoevolution := spec.GetBestFitness()
+	worstGenFitness, _ := spec.GetWorstFitness()
+
+	if bestGenFitness < *bestFitness {
+		*bestFitness = bestGenFitness
+		*bestCoevolution = bestGenCoevolution
+		if gen != 0 {
+			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: gen, Fitness: bestGenFitness})
+		} else {
+			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: *evals, Fitness: bestGenFitness})
+		}
+	}
+	*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
+	*fMax = common.CalculateFMax(*worstFitnessHistory, W)
 }
 
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.
