@@ -8,32 +8,32 @@ import (
 func TestRastrigin(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 	answer := Rastrigin(input)
-	assert.InDelta(t, 539.7935867419988, answer, 0.01, "Unexpected result from Rastrigin function")
+	assert.InDelta(t, 539.7935867419988, answer, 0.01, "Unexpected result from Rastrigin Function")
 }
 
 func TestSchwefel(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	answer := Schwefel(input)
-	assert.InDelta(t, 2392.9928386744673, answer, 0.01, "Unexpected result from Schwefel function")
+	assert.InDelta(t, 2392.9928386744673, answer, 0.01, "Unexpected result from Schwefel Function")
 }
 
 func TestGriewangk(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	answer := Griewangk(input)
-	assert.InDelta(t, 900.6978630212193, answer, 0.01, "Unexpected result from Griewangk function")
+	assert.InDelta(t, 900.6978630212193, answer, 0.01, "Unexpected result from Griewangk Function")
 }
 
 func TestAckley(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}
 	answer := Ackley(input)
-	assert.InDelta(t, 19.964400407804085, answer, 0.01, "Unexpected result from Ackley function")
+	assert.InDelta(t, 19.964400407804085, answer, 0.01, "Unexpected result from Ackley Function")
 }
 
 func TestRosenbrock(t *testing.T) {
-	// Todo: Finish writing Rosenbrock function & then write unit test
+	// Todo: Finish writing Rosenbrock Function & then write unit test
 	var input []uint16
 	answer := Rosenbrock(input)
-	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Rosenbrock function")
+	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Rosenbrock Function")
 }
 
 func TestScaleInputs(t *testing.T) {
@@ -41,7 +41,7 @@ func TestScaleInputs(t *testing.T) {
 	input := []uint16{0, 1, 2, 3, 4, 5, 6, 7, 8, 65535}
 	min := 0.0
 	max := 6553.5
-	scaled := scaleInputs(input, min, max)
+	scaled := ScaleInputs(input, min, max)
 	for i:=0; i<len(input); i++ {
 		assert.InDelta(t, float64(input[i])/10, scaled[i], 0.01, "ScaleInputs did not scale inputs correctly")
 	}

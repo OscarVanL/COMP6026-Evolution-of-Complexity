@@ -5,11 +5,9 @@
 package ccga
 
 import (
-	"fmt"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
-	"github.com/cheggaaa/pb"
 	"math"
 	"math/rand"
 	"sort"
@@ -41,32 +39,14 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 	if evaluations != 0 {
 		// Run CCGA for N function evaluations
-		fmt.Println("Running CCGA-1 for", evaluations, "function evaluations.")
-		bar := pb.New(evaluations)
-		bar.SetRefreshRate(time.Second)
-		bar.ShowTimeLeft = true
-		bar.ShowSpeed = true
-		bar.Start()
-
 		for evals<evaluations {
 			species.doGeneration(function, mutationP, 0, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
-			bar.Set(evals)
 		}
-		bar.Finish()
 	} else if generations != 0 {
 		// Run CCGA for N generations
-		fmt.Println("Running CCGA-1 for", generations, "generations.")
-		bar := pb.New(generations)
-		bar.SetRefreshRate(time.Second)
-		bar.ShowTimeLeft = true
-		bar.ShowSpeed = true
-		bar.Start()
-
 		for gen:=0; gen<generations; gen++ {
 			species.doGeneration(function, mutationP, gen, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
-			bar.Increment()
 		}
-		bar.Finish()
 	}
 
 	return bestFitnessHistory, bestFitness, bestCoevolution
@@ -209,6 +189,7 @@ func (spec Species) CoevolveRoulette(crossoverP float32) {
 						// Coevolution Case 2
 						// Use roulette selection: adapted from https://stackoverflow.com/a/177278/6008271
 						spec[sp][i].Coevolution[N] = spec[sp].RouletteSelection(r).Gene
+						//spec[sp][i].Coevolution[N] = spec[sp][0].Gene  // Todo: Is this better than above commented?
 					}
 
 				}

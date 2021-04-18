@@ -9,47 +9,47 @@ import (
 )
 
 type EvolutionResults struct {
-	Title string  // Title to represent result
-	XLabel string  // Label to give X Axis
-	Iterations int  // Number of function evaluations represented in charts
-	CCGAFitnessHistory []BestFitness  // Best fitness over time for CCGA
-	BestFitnessCCGA float64  // Best Fitness from CCGA-1
+	Title              string        // Title to represent result
+	XLabel             string        // Label to give X Axis
+	Iterations         int           // Number of function evaluations represented in charts
+	CCGAFitnessHistory []BestFitness // Best fitness over time for CCGA
+	BestFitnessCCGA    float64       // Best Fitness from CCGA-1
+	BestAssignmentCCGA []uint16      // Best assignment of genes
 
-	GAFitnessHistory []BestFitness  // Best fitness over time for GA
-	BestFitnessGA float64  // Best Fitness from standard GA
+	GAFitnessHistory []BestFitness // Best fitness over time for GA
+	BestFitnessGA    float64       // Best Fitness from standard GA
+	BestAssignmentGA []uint16      // Best assignment of genes
 }
 
-
-
 type BestFitness struct {
-	X int
+	X       int
 	Fitness float64
 }
 
-func PlotResults(output string, res []EvolutionResults) {
+func PlotResults(output string, res [][]EvolutionResults) {
 	page := components.NewPage()
-	xVals := initXValsSlice(res[0].Iterations)
 
-	for i:=0; i<len(res); i++ {
-		result := res[i]
-		// Take best fitness history and fill in the gaps so data can be plotted
-		yValsCCGA := fillMissingPoints(result.Iterations, result.CCGAFitnessHistory)
-		yValsGA := fillMissingPoints(result.Iterations, result.GAFitnessHistory)
+	xVals := initXValsSlice(res[0][0].Iterations)
+
+	for i := 0; i < len(res); i++ {
+		result := res[i][0]
+		// Calculate average result, filling in any gaps in the data
+		yValsGA, yValsCCGA := averageResults(result.Iterations, res[i])
 
 		line := charts.NewLine()
 
 		line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{
 				PageTitle: "Comparison of standard GA and CCGA-1 performance",
-				Width: "625px",
-				Height: "450px",
+				Width:     "625px",
+				Height:    "450px",
 			}),
 			charts.WithTitleOpts(opts.Title{
 				Title: result.Title,
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
-				Max: int(yValsCCGA[0]),
+				Max:  int(yValsCCGA[0]),
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: result.XLabel,
@@ -66,7 +66,7 @@ func PlotResults(output string, res []EvolutionResults) {
 				charts.WithLineChartOpts(opts.LineChart{
 					Smooth: true,
 				}),
-		)
+			)
 
 		page.AddCharts(line)
 	}
@@ -80,28 +80,57 @@ func PlotResults(output string, res []EvolutionResults) {
 
 func initXValsSlice(iterations int) []int {
 	xVals := make([]int, iterations)
-	for i:=0; i<iterations; i++ {
+	for i := 0; i < iterations; i++ {
 		xVals[i] = i
 	}
 	return xVals
 }
 
+func averageResults(iterations int, results []EvolutionResults) ([]float64, []float64) {
+	allYValsGA, allYValsCCGA := make([][]float64, iterations), make([][]float64, iterations)
+	yValsGAAveraged, yValsCCGAAveraged := make([]float64, iterations), make([]float64, iterations)
+
+	// Fill in missing points for each result
+	for res := 0; res < len(results); res++ {
+		allYValsGA[res] = fillMissingPoints(iterations, results[res].GAFitnessHistory)
+		allYValsCCGA[res] = fillMissingPoints(iterations, results[res].CCGAFitnessHistory)
+	}
+
+	// Calculate averages for each point
+	for i := 0; i < iterations; i++ {
+		pointSumGA, pointSumCCGA := 0.0, 0.0
+		for res := 0; res < len(results); res++ {
+			pointSumGA += allYValsGA[res][i]
+			pointSumCCGA += allYValsCCGA[res][i]
+		}
+		yValsGAAveraged[i] = pointSumGA / float64(len(results))
+		yValsCCGAAveraged[i] = pointSumCCGA / float64(len(results))
+	}
+
+	return yValsGAAveraged, yValsCCGAAveraged
+}
 
 // fillMissingPoints fills in gaps in results data so that scores are properly spaced on plots
 func fillMissingPoints(iterations int, BestFitnessHistory []BestFitness) []float64 {
 	yVals := make([]float64, iterations)
 
 	lastStart := 0
-	for score:=0; score<len(BestFitnessHistory); score++ {
+	for score := 0; score < len(BestFitnessHistory); score++ {
 		bestScore := BestFitnessHistory[score].Fitness
 
 		if score == len(BestFitnessHistory)-1 {
-			for i:=lastStart; i<iterations; i++ {
-				yVals[i] = bestScore
+			for i := lastStart; i <= BestFitnessHistory[score].X; i++ {
+				if i >= iterations {
+					yVals[iterations-1] = bestScore
+				} else {
+					yVals[i] = bestScore
+				}
 			}
 		} else {
-			for i:=lastStart; i<BestFitnessHistory[score+1].X; i++ {
-				yVals[i] = bestScore
+			for i := lastStart; i < BestFitnessHistory[score+1].X; i++ {
+				if i < iterations {
+					yVals[i] = bestScore
+				}
 			}
 			lastStart = BestFitnessHistory[score+1].X
 		}

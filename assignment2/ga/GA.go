@@ -5,7 +5,6 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
-	"github.com/cheggaaa/pb"
 	"math"
 	"math/rand"
 	"os"
@@ -35,32 +34,14 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 	if evaluations != 0 {
 		// Run GA for N function evaluations
-		fmt.Println("Running GA for", evaluations, "function evaluations.")
-		bar := pb.New(evaluations)
-		bar.SetRefreshRate(time.Second)
-		bar.ShowTimeLeft = true
-		bar.ShowSpeed = true
-		bar.Start()
-
 		for evals<evaluations {
 			population.doGeneration(function, mutationP, 0, &evals, &fMax, &bestFitness, &bestGenes, &bestFitnessHistory, &worstFitnessHistory)
-			bar.Set(evals)
 		}
-		bar.Finish()
 	} else if generations != 0 {
 		// Run GA for N generations
-		fmt.Println("Running GA for", generations, "generations.")
-		bar := pb.New(generations)
-		bar.SetRefreshRate(time.Second)
-		bar.ShowTimeLeft = true
-		bar.ShowSpeed = true
-		bar.Start()
-
 		for gen:=0; gen<generations; gen++ {
 			population.doGeneration(function, mutationP, gen, &evals, &fMax, &bestFitness, &bestGenes, &bestFitnessHistory, &worstFitnessHistory)
-			bar.Increment()
 		}
-		bar.Finish()
 	}
 
 	return bestFitnessHistory, bestFitness, bestGenes

@@ -7,17 +7,20 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
+	"github.com/cheggaaa/pb"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"sync"
+	"time"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "coevolve",
 	Short: "Cooperative Coevolution implementation for COMP6026",
-	Long: `An implementation of DOI 10.1007/3-540-58484-6_269 'A Cooperative Coevolutionary Approach to Function Optimization'.'`,
+	Long:  `An implementation of DOI 10.1007/3-540-58484-6_269 'A Cooperative Coevolutionary Approach to Function Optimization'.'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("evaluations") && cmd.Flags().Changed("generations") {
 			return errors.New("cannot set evaluations and generations, pick one")
@@ -38,6 +41,7 @@ var rootCmd = &cobra.Command{
 var evaluations int
 var generations int
 var popSize int
+var repetitions int
 var cpuprofile string
 var output string
 
@@ -45,6 +49,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&evaluations, "evaluations", "e", 0, "Function evaluation limit")
 	rootCmd.Flags().IntVarP(&generations, "generations", "g", 0, "Generations limit")
 	rootCmd.Flags().IntVarP(&popSize, "population", "p", 100, "Population size")
+	rootCmd.Flags().IntVarP(&repetitions, "repetitions", "r", 50, "Number of times to repeat experiment")
 	rootCmd.Flags().StringVar(&cpuprofile, "cpuprofile", "", "Profile CPU usage to file (eg: assignment2.prof)")
 	rootCmd.Flags().StringVarP(&output, "output", "o", "", "Fitness Figure output file (eg: charts.html)")
 }
@@ -67,16 +72,17 @@ func Start() {
 		defer pprof.StopCPUProfile()
 	}
 
-	var results []chart.EvolutionResults
+	// Store results for each iteration of the function
+	var results [][]chart.EvolutionResults
 
-	fmt.Println("Benchmarking Rastrigin Function")
-	results = append(results, RunGAs(f.Rastrigin))
-	fmt.Println("Benchmarking Schwefel Function")
-	results = append(results, RunGAs(f.Schwefel))
-	fmt.Println("Benchmarking Griewangk Function")
-	results = append(results, RunGAs(f.Griewangk))
-	fmt.Println("Benchmarking Ackley Function")
-	results = append(results, RunGAs(f.Ackley))
+	fmt.Println("Benchmarking Rastrigin Function...")
+	results = append(results, RunGAs("rastrigin"))
+	fmt.Println("Benchmarking Schwefel Function...")
+	results = append(results, RunGAs("schwefel"))
+	fmt.Println("Benchmarking Griewangk Function...")
+	results = append(results, RunGAs("griewangk"))
+	fmt.Println("Benchmarking Ackley Function...")
+	results = append(results, RunGAs("ackley"))
 
 	fmt.Println("Creating Charts")
 	if output != "" {
@@ -84,46 +90,58 @@ func Start() {
 	}
 }
 
-
-func RunGAs(algo f.Fitness) chart.EvolutionResults {
-	label, N, mutationP := f.GetParams(algo)
-
-	YValsGA, BestFitnessGA, BestAssignmentGA := ga.Run(evaluations, generations, popSize, N, algo, mutationP)
-	YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(evaluations, generations, popSize, N, algo, mutationP)
-
-	fmt.Println("Best GA fitness:", BestFitnessGA, ". Parameters:")
-	for i:=0; i<len(BestAssignmentGA); i++ {
-		fmt.Print(BestAssignmentGA[i], ", ")
-	}
-	fmt.Println()
-
-	fmt.Println("Best CCGA fitness:", BestFitnessCCGA, ". Parameters:")
-	for i:=0; i<len(BestAssignmentCCGA); i++ {
-		fmt.Print(BestAssignmentCCGA[i], ", ")
-	}
-	fmt.Println()
-
-	if evaluations != 0 {
-		return chart.EvolutionResults{
-			Title: label,
-			XLabel: "function\nevals",
-			Iterations: evaluations,
-			CCGAFitnessHistory: YValsCCGA,
-			BestFitnessCCGA: BestFitnessCCGA,
-			GAFitnessHistory: YValsGA,
-			BestFitnessGA: BestFitnessGA,
-		}
-	} else {
-		return chart.EvolutionResults{
-			Title: label,
-			XLabel: "gens",
-			Iterations: generations,
-			CCGAFitnessHistory: YValsCCGA,
-			BestFitnessCCGA: BestFitnessCCGA,
-			GAFitnessHistory: YValsGA,
-			BestFitnessGA: BestFitnessGA,
-		}
+func RunGAs(function string) []chart.EvolutionResults {
+	Params, err := f.GetParams(function)
+	if err != nil {
+		panic(err)
 	}
 
+	var results []chart.EvolutionResults
 
+	bar := pb.New(repetitions)
+	bar.SetRefreshRate(time.Second)
+	bar.ShowTimeLeft = true
+	bar.Start()
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(repetitions)
+
+	for i := 0; i < repetitions; i++ {
+		// Run each separate GA repetition in its own goroutine
+		go func() {
+			YValsGA, BestFitnessGA, BestAssignmentGA := ga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+
+			if evaluations != 0 {
+				results = append(results, chart.EvolutionResults{
+					Title:              Params.Label,
+					XLabel:             "function\nevals",
+					Iterations:         evaluations,
+					CCGAFitnessHistory: YValsCCGA,
+					BestFitnessCCGA:    BestFitnessCCGA,
+					BestAssignmentCCGA: BestAssignmentCCGA,
+					GAFitnessHistory:   YValsGA,
+					BestFitnessGA:      BestFitnessGA,
+					BestAssignmentGA:   BestAssignmentGA,
+				})
+			} else {
+				results = append(results, chart.EvolutionResults{
+					Title:              Params.Label,
+					XLabel:             "gens",
+					Iterations:         generations,
+					CCGAFitnessHistory: YValsCCGA,
+					BestFitnessCCGA:    BestFitnessCCGA,
+					BestAssignmentCCGA: BestAssignmentCCGA,
+					GAFitnessHistory:   YValsGA,
+					BestFitnessGA:      BestFitnessGA,
+					BestAssignmentGA:   BestAssignmentGA,
+				})
+			}
+			bar.Increment()
+			waitGroup.Done()
+		}()
+	}
+	waitGroup.Wait()
+	bar.Finish()
+
+	return results
 }
