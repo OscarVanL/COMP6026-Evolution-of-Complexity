@@ -142,19 +142,23 @@ func Ackley(x []uint16) float64 {
 }
 
 const (
-	RosenbrockN         = 20 // TODO: I made up this N dimensionality, it may need to be tuned if problem too easy or hard
+	RosenbrockN         = 40 // TODO: I made up this N dimensionality, it may need to be tuned if problem too easy or hard
 	RosenbrockMin       = -2.048
 	RosenbrockMax       = 2.048
 	RosenbrockMutationP = float32(1) / RosenbrockN
 )
 
 func Rosenbrock(x []uint16) float64 {
-	// Todo: Write Rosenbrock Function
-	//sum := 0.0
-	//for i:=0; i<RosenbrockN/2; i++ {
-	//
-	//}
+	xScaled := ScaleInputs(x[:], RosenbrockMin, RosenbrockMax)
+	sum := 0.0
+	for i := 0; i < RosenbrockN/2; i++ {
+		sum += math.Pow(100.0*(xScaled[2*i]-xScaled[2*i+1]), 2) + math.Pow(xScaled[2*i]-1, 2)
+	}
 
+	return sum
+}
+
+func TestFunc(x []uint16) float64 {
 	return 0.0
 }
 

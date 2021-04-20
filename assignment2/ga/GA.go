@@ -1,13 +1,11 @@
 package ga
 
 import (
-	"fmt"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"math"
 	"math/rand"
-	"os"
 	"sort"
 	"time"
 )
@@ -27,7 +25,7 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 	// Initialise GA's population
 	population := InitPopulation(N, popSize, time.Now().Unix())
-	evals += population.EvalFitness(function, 0)
+	population.EvalFitness(function, 0)
 	population.SortFitness()
 	bestFitnessHistory = append(bestFitnessHistory, chart.BestFitness{X: evals, Fitness: population[0].Fitness})
 	fMax = population[len(population)-1].Fitness  // Set initial value of f'max
@@ -50,7 +48,7 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestGenes *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
 	// Perform two-point crossover for each individual
-	*evals += pop.Crossover(CrossoverP, function)
+	pop.Crossover(CrossoverP, function)
 	// Mutate each individual's genes
 	pop.Mutate(mutationP)
 	// Re-evaluates individual fitness
@@ -105,7 +103,7 @@ func (pop Population) Mutate(MutationP float32) {
 	}
 }
 
-func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) int {
+func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 
@@ -114,11 +112,17 @@ func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) int {
 	for i:=1; i<len(pop); i++ {
 		rouletteGenes := pop.RouletteSelection(r).Genes
 		if r.Float32() < crossoverP {
+			//// Perform two-point crossover
+			//offspringA, offspringB, err := common.TwoPointCrossoverGA(pop[i].Genes, rouletteGenes)
+			//if err != nil{
+			//	_, _ = fmt.Fprintf(os.Stderr, "Error during two-point crossover: %v\n", err)
+			//	os.Exit(1)
+			//}
+
 			// Perform two-point crossover
-			offspringA, offspringB, err := common.TwoPointCrossoverGA(pop[i].Genes, rouletteGenes)
-			if err != nil{
-				_, _ = fmt.Fprintf(os.Stderr, "Error during two-point crossover: %v\n", err)
-				os.Exit(1)
+			offspringA, offspringB := make([]uint16, len(pop[i].Genes)), make([]uint16, len(pop[i].Genes))
+			for g:=0; g<len(pop[i].Genes); g++ {
+				offspringA[g], offspringB[g] = common.TwoPointCrossover(pop[i].Genes[g], rouletteGenes[g])
 			}
 
 			fitnessA, fitnessB := fitness(offspringA), fitness(offspringB)
@@ -130,8 +134,6 @@ func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) int {
 			}
 		}
 	}
-
-	return 2
 }
 
 // RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.

@@ -30,10 +30,9 @@ func TestAckley(t *testing.T) {
 }
 
 func TestRosenbrock(t *testing.T) {
-	// Todo: Finish writing Rosenbrock Function & then write unit test
-	var input []uint16
+	input := []uint16{1000, 1000, 2000, 2000, 3000, 3000, 4000, 4000, 5000, 5000, 6000, 6000, 7000, 7000, 8000, 8000, 9000, 9000, 10000, 10000, 1000, 1000, 2000, 2000, 3000, 3000, 4000, 4000, 5000, 5000, 6000, 6000, 7000, 7000, 8000, 8000, 9000, 9000, 10000, 10000}
 	answer := Rosenbrock(input)
-	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Rosenbrock Function")
+	assert.InDelta(t, 146.90334478764623, answer, 0.01, "Unexpected result from Rosenbrock Function")
 }
 
 func TestScaleInputs(t *testing.T) {

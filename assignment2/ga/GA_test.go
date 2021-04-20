@@ -55,9 +55,9 @@ func TestPopulation_Crossover_OneProbability(t *testing.T) {
 	}
 
 	// Crossover with 100% probability
-	input.Crossover(1.0, f.Rosenbrock)
+	input.Crossover(1.0, f.TestFunc)
 
-	assert.Equal(t, []uint16{0x0000, 0xFFFF, 0xFFFF, 0x0000}, input[1].Genes, "Genes were not crossed over as expected")
+	assert.Equal(t, []uint16{0xf00f, 0xf00f, 0xf00f, 0xf00f}, input[1].Genes, "Genes were not crossed over as expected")
 }
 
 // TestPopulation_Crossover checks that genes are kept constant with 0 crossover probability
@@ -69,7 +69,7 @@ func TestPopulation_Crossover_ZeroProbability(t *testing.T) {
 	}
 
 	// Crossover with 100% probability
-	input.Crossover(0.0, f.Rosenbrock)
+	input.Crossover(0.0, f.TestFunc)
 
 	assert.Equal(t, uint16(0xFFFF), input[1].Genes[0], "Genes were modified when they shouldn't")
 	assert.Equal(t, uint16(0x0000), input[1].Genes[1], "Genes were modified when they shouldn't")
@@ -85,7 +85,7 @@ func TestPopulation_Crossover_Elitist(t *testing.T) {
 	}
 
 	// Crossover with 100% probability
-	input.Crossover(1.0, f.Rosenbrock)
+	input.Crossover(1.0, f.TestFunc)
 	
 	assert.Equal(t, uint16(0x0000), input[0].Genes[0], "Genes for 0-index individual should remain unchanged")
 }

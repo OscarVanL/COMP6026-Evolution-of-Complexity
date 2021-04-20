@@ -5,6 +5,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"io"
+	"math"
 	"os"
 )
 
@@ -49,7 +50,8 @@ func PlotResults(output string, res [][]EvolutionResults) {
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
-				Max:  int(yValsCCGA[0]),
+				Max: int(math.Min(yValsCCGA[0], yValsGA[0])),
+				//Max:  1000,
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: result.XLabel,
@@ -119,12 +121,8 @@ func fillMissingPoints(iterations int, BestFitnessHistory []BestFitness) []float
 		bestScore := BestFitnessHistory[score].Fitness
 
 		if score == len(BestFitnessHistory)-1 {
-			for i := lastStart; i <= BestFitnessHistory[score].X; i++ {
-				if i >= iterations {
-					yVals[iterations-1] = bestScore
-				} else {
-					yVals[i] = bestScore
-				}
+			for i := lastStart; i < iterations; i++ {
+				yVals[i] = bestScore
 			}
 		} else {
 			for i := lastStart; i < BestFitnessHistory[score+1].X; i++ {

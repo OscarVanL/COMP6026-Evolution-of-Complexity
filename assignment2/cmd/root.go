@@ -83,6 +83,8 @@ func Start() {
 	results = append(results, RunGAs("griewangk"))
 	fmt.Println("Benchmarking Ackley Function...")
 	results = append(results, RunGAs("ackley"))
+	fmt.Println("Benchmarking Rosenbrock Function...")
+	results = append(results, RunGAs("rosenbrock"))
 
 	fmt.Println("Creating Charts")
 	if output != "" {
