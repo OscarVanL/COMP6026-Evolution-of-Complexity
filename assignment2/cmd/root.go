@@ -33,11 +33,15 @@ var rootCmd = &cobra.Command{
 		if cmd.Flags().Changed("output") && filepath.Ext(output) != ".html" {
 			return errors.New("output figure argument must end with .html extension")
 		}
+		// Todo: Check at least one algorithm has been configured to run
+
+		fmt.Println("Starting with algorithms:", algorithms)
 		Start()
 		return nil
 	},
 }
 
+var algorithms []string
 var evaluations int
 var generations int
 var popSize int
@@ -46,6 +50,7 @@ var cpuprofile string
 var output string
 
 func init() {
+	rootCmd.Flags().StringSliceVarP(&algorithms, "algorithms", "a", []string{"ga", "ccga", "ccgahc"}, "Which algorithms to compare (ga,ccga,ccgahc)")
 	rootCmd.Flags().IntVarP(&evaluations, "evaluations", "e", 0, "Function evaluation limit")
 	rootCmd.Flags().IntVarP(&generations, "generations", "g", 0, "Generations limit")
 	rootCmd.Flags().IntVarP(&popSize, "population", "p", 100, "Population size")
@@ -110,8 +115,13 @@ func RunGAs(function string) []chart.EvolutionResults {
 	for i := 0; i < repetitions; i++ {
 		// Run each separate GA repetition in its own goroutine
 		go func() {
+			// Standard Genetic Algorithm
 			YValsGA, BestFitnessGA, BestAssignmentGA := ga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
-			YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			// CCGA
+			YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(false, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			// CCGAHC
+			//YValsCCGAHC, BestFitnessCCGAHC, BestAssignmentCCGAHC := ccga.Run(true, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+
 
 			if evaluations != 0 {
 				results = append(results, chart.EvolutionResults{

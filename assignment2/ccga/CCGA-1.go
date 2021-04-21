@@ -6,6 +6,8 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
+	"github.com/jinzhu/copier"
+	"log"
 	"math"
 	"math/rand"
 	"sort"
@@ -18,7 +20,7 @@ const (
 	W          = 5   // Scaling Window width
 )
 
-func Run(evaluations int, generations int, popSize int, N int, function f.Fitness, mutationP float32) ([]chart.BestFitness, float64, []uint16) {
+func Run(hillClimb bool, evaluations int, generations int, popSize int, N int, function f.Fitness, mutationP float32) ([]chart.BestFitness, float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var evals int
 	var fMax float64 // Scaling Window f'max as per https://ieeexplore.ieee.org/document/4075583
@@ -50,6 +52,9 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 }
 
 func (spec Species) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
+	// Select members to be in new species via tournament selection
+	spec.SelectNewPopulation()
+
 	// Coevolve in a round-robin fashion for each subpopulation
 	for s := 0; s < len(spec); s++ {
 		subpop := spec[s]
@@ -63,7 +68,6 @@ func (spec Species) doGeneration(function f.Fitness, mutationP float32, gen int,
 		subpop.SortFitness()
 		// Finds individual with best fitness & genes in this subpopulation
 		bestGenFitness, bestGenCoevolution := subpop.GetBestFitness()
-		// Todo: Perhaps this worst fitness needs to be evaluated per generation, not per round-robin coevolution stage
 		worstGenFitness, _ := subpop.GetWorstFitness()
 
 		if bestGenFitness < *bestFitness {
@@ -78,6 +82,32 @@ func (spec Species) doGeneration(function f.Fitness, mutationP float32, gen int,
 		*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
 		*fMax = common.CalculateFMax(*worstFitnessHistory, W)
 	}
+}
+
+// SelectNewPopulation updates the individuals in the subpopulation using tournament selection
+func (spec Species) SelectNewPopulation() {
+	// Make deep copy of last generation's subpopulation
+	lastGeneration := Species{}
+	err := copier.CopyWithOption(&lastGeneration, &spec, copier.Option{DeepCopy: true})
+	if err != nil {
+		log.Fatal("Unable to make clone of last population via deep copy:", err)
+	}
+
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
+	// Perform tournament selection (Experiment 9)
+	for sp:=0; sp<len(spec); sp++ {
+		for i:=1; i<len(spec[0]); i++ {
+			individualA, individualB := lastGeneration[sp][r.Intn(len(spec[0]))], lastGeneration[sp][r.Intn(len(spec[0]))]
+			if individualA.Fitness > individualB.Fitness {
+				spec[sp][i] = individualB
+			} else {
+				spec[sp][i] = individualA
+			}
+		}
+	}
+
 }
 
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.

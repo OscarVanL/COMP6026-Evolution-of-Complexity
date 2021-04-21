@@ -4,6 +4,8 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
+	"github.com/jinzhu/copier"
+	"log"
 	"math"
 	"math/rand"
 	"sort"
@@ -47,6 +49,8 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 
 func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestGenes *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
+	// Select members to be in new population via tournament selection
+	pop.SelectNewPopulation()
 	// Perform two-point crossover for each individual
 	pop.Crossover(CrossoverP, function)
 	// Mutate each individual's genes
@@ -71,6 +75,29 @@ func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen in
 	}
 	*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
 	*fMax = common.CalculateFMax(*worstFitnessHistory, W)
+}
+
+// SelectNewPopulation updates the individuals in the population using tournament selection
+func (pop Population) SelectNewPopulation() {
+	// Make deep copy of last generation's population
+	lastGeneration := Population{}
+	err := copier.CopyWithOption(&lastGeneration, &pop, copier.Option{DeepCopy: true})
+	if err != nil {
+		log.Fatal("Unable to make clone of last population via deep copy:", err)
+	}
+
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+
+	// Perform tournament selection (Experiment 9)
+	for i:=1; i<len(pop); i++ {
+		individualA, individualB := lastGeneration[r.Intn(len(pop))], lastGeneration[r.Intn(len(pop))]
+		if individualA.Fitness > individualB.Fitness {
+			pop[i] = individualB
+		} else {
+			pop[i] = individualA
+		}
+	}
 }
 
 // Mutate performs bit-flip mutation on each of the individual's genes
@@ -110,23 +137,17 @@ func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) {
 	pop.RouletteSetup()
 
 	for i:=1; i<len(pop); i++ {
-		rouletteGenes := pop.RouletteSelection(r).Genes
 		if r.Float32() < crossoverP {
-			//// Perform two-point crossover
-			//offspringA, offspringB, err := common.TwoPointCrossoverGA(pop[i].Genes, rouletteGenes)
-			//if err != nil{
-			//	_, _ = fmt.Fprintf(os.Stderr, "Error during two-point crossover: %v\n", err)
-			//	os.Exit(1)
-			//}
-
+			// Select individual for crossover from last generation
+			rouletteGenes := pop.RouletteSelection(r).Genes
 			// Perform two-point crossover
 			offspringA, offspringB := make([]uint16, len(pop[i].Genes)), make([]uint16, len(pop[i].Genes))
 			for g:=0; g<len(pop[i].Genes); g++ {
 				offspringA[g], offspringB[g] = common.TwoPointCrossover(pop[i].Genes[g], rouletteGenes[g])
 			}
 
+			// Pick best offspring
 			fitnessA, fitnessB := fitness(offspringA), fitness(offspringB)
-
 			if fitnessA > fitnessB {
 				pop[i].Genes = offspringB
 			} else {
