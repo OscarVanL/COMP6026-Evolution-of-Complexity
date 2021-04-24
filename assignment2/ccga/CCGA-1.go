@@ -51,108 +51,19 @@ func Run(hillClimb bool, evaluations int, generations int, popSize int, N int, f
 }
 
 func (spec Species) doGeneration(fitness f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
-	// Select members to be in new species via tournament selection
-	//spec.SelectNewPopulation()
-
-	// BEFORE: (Good)
-	//// Coevolve in a round-robin fashion for each subpopulation
-	//for s := 0; s < len(spec); s++ {
-	//	subpop := spec[s]
-	//
-	//	// Coevolve a subpopulation with the best genes from each species
-	//	subpop.CoevolveRoulette(CrossoverP, spec, function)
-	//	// Mutate each individual's genes
-	//	subpop.Mutate(mutationP)
-	//	// Re-evaluate subpopulation member's fitnesses
-	//	*evals += subpop.EvalFitness(fitness, *fMax)
-	//	// Sort sub-population by fittest (smallest) to least fit (largest)
-	//	subpop.SortFitness()
-	//	// Finds individual with best fitness & genes in this subpopulation
-	//	bestGenFitness, bestGenCoevolution := subpop.GetBestFitness()
-	//	worstGenFitness, _ := subpop.GetWorstFitness()
-	//
-	//	if bestGenFitness < *bestFitness {
-	//		*bestFitness = bestGenFitness
-	//		*bestCoevolution = bestGenCoevolution
-	//		if gen != 0 {
-	//			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: gen, Fitness: bestGenFitness})
-	//		} else {
-	//			*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: *evals, Fitness: bestGenFitness})
-	//		}
-	//	}
-	//	*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
-	//	*fMax = common.CalculateFMax(*worstFitnessHistory, W)
-	//}
-
 	so := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(so)
 
 	for s := 0; s < len(spec); s++ {
 		subpop := spec[s]
 
-		NGenes := len(subpop[0].Coevolution)
-
 		subpop.RouletteSetup()
 
 		for i := 1; i<len(subpop); i++ {
-			// 1. COEVOLVE ROULETTE
-			for N := 0; N < NGenes; N++ {
-				// Two cases for updating Coevolutions:
-				//	1. We're updating the subpop member's own gene:
-				//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
-				//  2. We're picking genes for the coevolution from other subpopulations:
-				//      -> Select current best subcomponents
-
-				if subpop[i].SpeciesId != N {
-					// Coevolution Case 2
-					subpop[i].Coevolution[N] = spec[N][0].Gene
-				}
-			}
-
-			N := subpop[i].SpeciesId
-			// Update subpop member's own gene using two-point crossover
-			if r.Float32() < CrossoverP {
-				// Coevolution Case 1
-				offspringA, offspringB := common.TwoPointCrossover(subpop[i].Gene, subpop.RouletteSelection(r).Gene)
-
-				// Pick best offspring
-				subpop[i].Coevolution[N] = offspringA
-				fitnessA := fitness(subpop[i].Coevolution)
-				subpop[i].Coevolution[N] = offspringB
-				fitnessB := fitness(subpop[i].Coevolution)
-				if fitnessA > fitnessB {
-					subpop[i].Coevolution[N] = offspringB
-				} else {
-					subpop[i].Coevolution[N] = offspringA
-				}
-			} else {
-				subpop[i].Coevolution[N] = subpop[i].Gene
-			}
-
-			//// 2. MUTATE
-
-			for g := 0; g < len(subpop[i].Coevolution); g++ {
-				// Mutate each of the 16 bits in the individual's uint16 gene
-				for b := 0; b < 16; b++ {
-					// P probability of mutation
-					if r.Float32() < mutationP {
-						// Perform bit-flip
-						if common.HasBit(subpop[i].Coevolution[g], uint(b)) {
-							subpop[i].Coevolution[g] = common.ClearBit(subpop[i].Coevolution[g], uint(b))
-						} else {
-							subpop[i].Coevolution[g] = common.SetBit(subpop[i].Coevolution[g], uint(b))
-						}
-					}
-				}
-			}
-
-			//Update individual's own mutated gene too
-			subpop[i].Gene = subpop[i].Coevolution[subpop[i].SpeciesId]
-
-			//// 3. EVAL FITNESS
-			// Calculate fitness while applying fMax scaling window
-			subpop[i].Fitness = fitness(subpop[i].Coevolution)
-			subpop[i].ScaledFitness = math.Abs(*fMax - subpop[i].Fitness)
+			individual := &subpop[i]
+			individual.CoevolveRoulette(CrossoverP, spec, fitness, r)
+			individual.Mutate(mutationP, r)
+			individual.EvalFitness(fitness, *fMax)
 			*evals += 1
 
 			if subpop[i].Fitness < *bestFitness {
@@ -166,25 +77,11 @@ func (spec Species) doGeneration(fitness f.Fitness, mutationP float32, gen int, 
 			}
 		}
 
-		// 4. SORT FITNESS
 		// Sort sub-population by fittest (smallest) to least fit (largest)
-		sort.Slice(subpop, func(i, j int) bool {
-			return subpop[i].Fitness < subpop[j].Fitness
-		})
+		subpop.SortFitness()
 
-		// Finds individual with best fitness & genes in this subpopulation
-		//bestGenFitness, bestGenCoevolution := subpop.GetBestFitness()
+		// Finds individual with worst fitness for updating sliding window
 		worstGenFitness, _ := subpop.GetWorstFitness()
-
-		//if bestGenFitness < *bestFitness {
-		//	*bestFitness = bestGenFitness
-		//	*bestCoevolution = bestGenCoevolution
-		//	if gen != 0 {
-		//		*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: gen, Fitness: bestGenFitness})
-		//	} else {
-		//		*bestFitnessHistory = append(*bestFitnessHistory, chart.BestFitness{X: *evals, Fitness: bestGenFitness})
-		//	}
-		//}
 		*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
 		*fMax = common.CalculateFMax(*worstFitnessHistory, W)
 	}
@@ -279,6 +176,26 @@ func (subpop Population) Mutate(MutationP float32) {
 	//waitGroup.Wait()
 }
 
+func (individual *Individual) Mutate(MutationP float32, r *rand.Rand) {
+	for g := 0; g < len(individual.Coevolution); g++ {
+		// Mutate each of the 16 bits in the individual's uint16 gene
+		for b := 0; b < 16; b++ {
+			// P probability of mutation
+			if r.Float32() < MutationP {
+				// Perform bit-flip
+				if common.HasBit(individual.Coevolution[g], uint(b)) {
+					individual.Coevolution[g] = common.ClearBit(individual.Coevolution[g], uint(b))
+				} else {
+					individual.Coevolution[g] = common.SetBit(individual.Coevolution[g], uint(b))
+				}
+			}
+		}
+	}
+
+	//Update individual's own mutated gene too
+	individual.Gene = individual.Coevolution[individual.SpeciesId]
+}
+
 func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitness f.Fitness) {
 	//var waitGroup sync.WaitGroup
 	NGenes := len(subpop[0].Coevolution)
@@ -333,6 +250,42 @@ func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitn
 	//waitGroup.Wait()
 }
 
+func (individual *Individual) CoevolveRoulette(crossoverP float32, spec Species, fitness f.Fitness, r *rand.Rand) {
+	NGenes := len(individual.Coevolution)
+	// 1. COEVOLVE ROULETTE
+	for N := 0; N < NGenes; N++ {
+		// Two cases for updating Coevolutions:
+		//	1. We're updating the subpop member's own gene:
+		//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
+		//  2. We're picking genes for the coevolution from other subpopulations:
+		//      -> Select current best subcomponents
+
+		if individual.SpeciesId != N {
+			// Coevolution Case 2
+			individual.Coevolution[N] = spec[N][0].Gene
+		}
+	}
+
+	N := individual.SpeciesId
+	// Update subpop member's own gene using two-point crossover
+	if r.Float32() < crossoverP {
+		// Coevolution Case 1
+		offspringA, offspringB := common.TwoPointCrossover(individual.Gene, spec[N].RouletteSelection(r).Gene)
+
+		// Pick best offspring
+		individual.Coevolution[N] = offspringA
+		fitnessA := fitness(individual.Coevolution)
+		individual.Coevolution[N] = offspringB
+		fitnessB := fitness(individual.Coevolution)
+		if fitnessA > fitnessB {
+			individual.Coevolution[N] = offspringB
+		} else {
+			individual.Coevolution[N] = offspringA
+		}
+	} else {
+		individual.Coevolution[N] = individual.Gene
+	}
+}
 
 
 // RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.
@@ -356,7 +309,7 @@ func (subpop Population) RouletteSetup() {
 // RouletteSelection uses a roulette approach to apply higher selective pressure for individuals with better fitness
 // Adapted from: https://stackoverflow.com/a/177278/6008271
 func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
-	// Todo: Use binary search here, instead of linear search.
+	// Todo: Use binary search here, instead of linear search for speed boost
 	number := r.Float64()
 	for p := 0; p < len(subpop); p++ {
 		if p == 0 {
@@ -377,39 +330,27 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
 // Return number of fitness evaluations
 func (spec Species) EvalFitness(fitness f.Fitness, fMax float64) {
-	//var waitGroup sync.WaitGroup
-	//waitGroup.Add(len(spec))
-
 	for s:=0; s<len(spec); s++ {
-		species := spec[s]
-
-		// Evaluate each individual's fitness
-		//go func(s int) {
-			for i:=0; i<len(species); i++ {
-				// Calculate fitness while applying fMax scaling window
-				spec[s][i].Fitness = fitness(spec[s][i].Coevolution)
-				spec[s][i].ScaledFitness = math.Abs(fMax - spec[s][i].Fitness)
-			}
-
-			//waitGroup.Done()
-		//} (s)
+		spec[s].EvalFitness(fitness, fMax)
 	}
-
-	// Wait until all individuals have had fitness evaluated
-	//waitGroup.Wait()
 }
 
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
 // Return number of fitness evaluations
 func (subpop Population) EvalFitness(fitness f.Fitness, fMax float64) int {
 	for i := 0; i < len(subpop); i++ {
-		// Calculate fitness while applying fMax scaling window
-		subpop[i].Fitness = fitness(subpop[i].Coevolution)
-		subpop[i].ScaledFitness = math.Abs(fMax - subpop[i].Fitness)
+		subpop[i].EvalFitness(fitness, fMax)
 	}
 
 	return len(subpop)
 }
+
+func (individual *Individual) EvalFitness(fitness f.Fitness, fMax float64) {
+	// Calculate fitness while applying fMax scaling window
+	individual.Fitness = fitness(individual.Coevolution)
+	individual.ScaledFitness = math.Abs(fMax - individual.Fitness)
+}
+
 
 func (spec Species) SortFitness() {
 	// Sort the population's individuals by fittest (smallest) to least fit (largest)
