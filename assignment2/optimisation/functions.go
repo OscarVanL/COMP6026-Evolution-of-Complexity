@@ -21,7 +21,7 @@ func GetParams(algo string) (Params, error) {
 	case "rastrigin":
 		return Params{
 			Function:  Rastrigin,
-			Label:     "Rastrigin Function",
+			Label:     RastriginLabel,
 			N:         RastriginN,
 			MutationP: RastriginMutationP,
 			ScaleMin:  RastriginMin,
@@ -30,7 +30,7 @@ func GetParams(algo string) (Params, error) {
 	case "schwefel":
 		return Params{
 			Function:  Schwefel,
-			Label:     "Schwefel Function",
+			Label:     SchwefelLabel,
 			N:         SchwefelN,
 			MutationP: SchwefelMutationP,
 			ScaleMin:  SchwefelMin,
@@ -39,7 +39,7 @@ func GetParams(algo string) (Params, error) {
 	case "griewangk":
 		return Params{
 			Function:  Griewangk,
-			Label:     "Griewangk Function",
+			Label:     GriewangkLabel,
 			N:         GriewangkN,
 			MutationP: GriewangkMutationP,
 			ScaleMin:  GriewangkMin,
@@ -48,7 +48,7 @@ func GetParams(algo string) (Params, error) {
 	case "ackley":
 		return Params{
 			Function:  Ackley,
-			Label:     "Ackley Function",
+			Label:     AckleyLabel,
 			N:         AckleyN,
 			MutationP: AckleyMutationP,
 			ScaleMin:  AckleyMin,
@@ -57,7 +57,7 @@ func GetParams(algo string) (Params, error) {
 	case "rosenbrock":
 		return Params{
 			Function:  Rosenbrock,
-			Label:     "Rosenbrock Function",
+			Label:     RosenbrockLabel,
 			N:         RosenbrockN,
 			MutationP: RosenbrockMutationP,
 			ScaleMin:  RosenbrockMin,
@@ -69,26 +69,28 @@ func GetParams(algo string) (Params, error) {
 }
 
 const (
+	RastriginLabel     = "Rastrigin Function"
 	RastriginN         = 20
 	RastriginMin       = -5.12
 	RastriginMax       = 5.12
-	RastriginMutationP = float32(1) / RastriginN
+	RastriginMutationP = float32(1)/(float32(16)*RastriginN)
 )
 
 func Rastrigin(x []uint16) float64 {
 	xScaled := ScaleInputs(x[:], RastriginMin, RastriginMax)
 	sum := 0.0
 	for i := 0; i < RastriginN; i++ {
-		sum += math.Pow(xScaled[i], 2) - 3.0*math.Cos(2.0*math.Pi*xScaled[i])
+		sum += math.Pow(xScaled[i], 2.0) - 3.0*math.Cos(2.0*math.Pi*xScaled[i])
 	}
-	return 3*float64(RastriginN) + sum
+	return 3.0*float64(RastriginN) + sum
 }
 
 const (
+	SchwefelLabel     = "Schwefel Function"
 	SchwefelN         = 10
 	SchwefelMin       = -500.0
 	SchwefelMax       = 500.0
-	SchwefelMutationP = float32(1) / SchwefelN
+	SchwefelMutationP = float32(1) / (float32(16)*SchwefelN)
 )
 
 // Schwefel Function differs to that in the paper, the paper has a mistake in a sign (+ve instead of -ve)
@@ -102,10 +104,11 @@ func Schwefel(x []uint16) float64 {
 }
 
 const (
+	GriewangkLabel     = "Griewangk Function"
 	GriewangkN         = 10
 	GriewangkMin       = -600.0
 	GriewangkMax       = 600.0
-	GriewangkMutationP = float32(1) / GriewangkN
+	GriewangkMutationP = float32(1) / (float32(16)*GriewangkN)
 )
 
 func Griewangk(x []uint16) float64 {
@@ -121,10 +124,11 @@ func Griewangk(x []uint16) float64 {
 }
 
 const (
+	AckleyLabel     = "Ackley Function"
 	AckleyN         = 30
 	AckleyMin       = -30.0
 	AckleyMax       = 30.0
-	AckleyMutationP = float32(1) / AckleyN
+	AckleyMutationP = float32(1) / (float32(16)*AckleyN)
 )
 
 func Ackley(x []uint16) float64 {
@@ -142,10 +146,11 @@ func Ackley(x []uint16) float64 {
 }
 
 const (
+	RosenbrockLabel     = "Rosenbrock Function"
 	RosenbrockN         = 40 // TODO: I made up this N dimensionality, it may need to be tuned if problem too easy or hard
 	RosenbrockMin       = -2.048
 	RosenbrockMax       = 2.048
-	RosenbrockMutationP = float32(1) / RosenbrockN
+	RosenbrockMutationP = float32(1) / (float32(16)*RosenbrockN)
 )
 
 func Rosenbrock(x []uint16) float64 {

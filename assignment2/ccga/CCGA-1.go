@@ -11,7 +11,6 @@ import (
 	"math"
 	"math/rand"
 	"sort"
-	"sync"
 	"time"
 )
 
@@ -53,11 +52,12 @@ func Run(hillClimb bool, evaluations int, generations int, popSize int, N int, f
 
 func (spec Species) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
 	// Select members to be in new species via tournament selection
-	spec.SelectNewPopulation()
+	//spec.SelectNewPopulation()
 
 	// Coevolve in a round-robin fashion for each subpopulation
 	for s := 0; s < len(spec); s++ {
 		subpop := spec[s]
+
 		// Coevolve a subpopulation with the best genes from each species
 		subpop.CoevolveRoulette(CrossoverP, spec, function)
 		// Mutate each individual's genes
@@ -137,17 +137,15 @@ func (spec Species) InitCoevolutions() {
 }
 
 func (subpop Population) Mutate(MutationP float32) {
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(subpop)-1)
-
-
+	//var waitGroup sync.WaitGroup
+	//waitGroup.Add(len(subpop)-1)
 
 	// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
 	for i := 1; i < len(subpop); i++ {
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
-		go func(i int, r *rand.Rand) {
+		//go func(i int, r *rand.Rand) {
 
 			//mutatedCoevolution := pop[s][i].coevolution
 			for g := 0; g < len(subpop[i].Coevolution); g++ {
@@ -168,17 +166,17 @@ func (subpop Population) Mutate(MutationP float32) {
 			//Update individual's own mutated gene too
 			subpop[i].Gene = subpop[i].Coevolution[subpop[i].SpeciesId]
 
-			waitGroup.Done()
-		} (i, r)
+			//waitGroup.Done()
+		//} (i, r)
 	}
 
-	waitGroup.Wait()
+	//waitGroup.Wait()
 }
 
 func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitness f.Fitness) {
-	var waitGroup sync.WaitGroup
+	//var waitGroup sync.WaitGroup
 	NGenes := len(subpop[0].Coevolution)
-	waitGroup.Add(NGenes)
+	//waitGroup.Add(NGenes)
 
 	subpop.RouletteSetup()
 
@@ -187,7 +185,7 @@ func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitn
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
-		go func(N int, r *rand.Rand) {
+		//go func(N int, r *rand.Rand) {
 
 			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
 			for i := 1; i < len(subpop); i++ {
@@ -221,12 +219,12 @@ func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitn
 					subpop[i].Coevolution[N] = spec[N][0].Gene
 				}
 			}
-			waitGroup.Done()
-		}(N, r)
+			//waitGroup.Done()
+		//}(N, r)
 
 	}
 
-	waitGroup.Wait()
+	//waitGroup.Wait()
 }
 
 
@@ -273,26 +271,26 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
 // Return number of fitness evaluations
 func (spec Species) EvalFitness(fitness f.Fitness, fMax float64) {
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(len(spec))
+	//var waitGroup sync.WaitGroup
+	//waitGroup.Add(len(spec))
 
 	for s:=0; s<len(spec); s++ {
 		species := spec[s]
 
 		// Evaluate each individual's fitness
-		go func(s int) {
+		//go func(s int) {
 			for i:=0; i<len(species); i++ {
 				// Calculate fitness while applying fMax scaling window
 				spec[s][i].Fitness = fitness(spec[s][i].Coevolution)
 				spec[s][i].ScaledFitness = math.Abs(fMax - spec[s][i].Fitness)
 			}
 
-			waitGroup.Done()
-		} (s)
+			//waitGroup.Done()
+		//} (s)
 	}
 
 	// Wait until all individuals have had fitness evaluated
-	waitGroup.Wait()
+	//waitGroup.Wait()
 }
 
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.

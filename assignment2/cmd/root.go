@@ -122,7 +122,6 @@ func RunGAs(function string) []chart.EvolutionResults {
 			// CCGAHC
 			//YValsCCGAHC, BestFitnessCCGAHC, BestAssignmentCCGAHC := ccga.Run(true, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
 
-
 			if evaluations != 0 {
 				results = append(results, chart.EvolutionResults{
 					Title:              Params.Label,

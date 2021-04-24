@@ -11,10 +11,23 @@ func TestRastrigin(t *testing.T) {
 	assert.InDelta(t, 539.7935867419988, answer, 0.01, "Unexpected result from Rastrigin Function")
 }
 
+func TestRastrigin_Optimal(t *testing.T) {
+	input := []uint16{32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768}
+	answer := Rastrigin(input)
+	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Rastrigin Function")
+}
+
 func TestSchwefel(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	answer := Schwefel(input)
 	assert.InDelta(t, 2392.9928386744673, answer, 0.01, "Unexpected result from Schwefel Function")
+}
+
+func TestSchwefel_Optimal(t *testing.T) {
+	// Optimal solution case
+	input := []uint16{60356, 60356, 60356, 60356, 60356, 60356, 60356, 60356, 60356, 60356}
+	answer := Schwefel(input)
+	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Schwefel Function")
 }
 
 func TestGriewangk(t *testing.T) {
@@ -23,10 +36,24 @@ func TestGriewangk(t *testing.T) {
 	assert.InDelta(t, 900.6978630212193, answer, 0.01, "Unexpected result from Griewangk Function")
 }
 
+func TestGriewangk_Optimal(t *testing.T) {
+	// Optimal solution case
+	input := []uint16{32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768}
+	answer := Griewangk(input)
+	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Griewangk Function")
+}
+
 func TestAckley(t *testing.T) {
 	input := []uint16{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}
 	answer := Ackley(input)
 	assert.InDelta(t, 19.964400407804085, answer, 0.01, "Unexpected result from Ackley Function")
+}
+
+func TestAckley_Optimal(t *testing.T) {
+	// Optimal solution case
+	input := []uint16{32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768}
+	answer := Ackley(input)
+	assert.InDelta(t, 0.0, answer, 0.01, "Unexpected result from Ackley Function")
 }
 
 func TestRosenbrock(t *testing.T) {

@@ -50,7 +50,7 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 
 func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestGenes *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
 	// Select members to be in new population via tournament selection
-	pop.SelectNewPopulation()
+	//pop.SelectNewPopulation()
 	// Perform two-point crossover for each individual
 	pop.Crossover(CrossoverP, function)
 	// Mutate each individual's genes

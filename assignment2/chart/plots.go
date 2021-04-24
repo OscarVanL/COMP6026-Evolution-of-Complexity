@@ -1,11 +1,12 @@
 package chart
 
 import (
+	"fmt"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"io"
-	"math"
 	"os"
 )
 
@@ -32,10 +33,26 @@ func PlotResults(output string, res [][]EvolutionResults) {
 
 	xVals := initXValsSlice(res[0][0].Iterations)
 
+
+
 	for i := 0; i < len(res); i++ {
 		result := res[i][0]
+		var YMax int
+		// Set Y-axis limits to same as those in paper
+		switch result.Title {
+		case optimisation.RastriginLabel:
+			YMax = 40
+		case optimisation.SchwefelLabel:
+			YMax = 400
+		case optimisation.GriewangkLabel:
+			YMax = 8
+		case optimisation.AckleyLabel:
+			YMax = 16
+		}
 		// Calculate average result, filling in any gaps in the data
 		yValsGA, yValsCCGA := averageResults(result.Iterations, res[i])
+		fmt.Println(result.Title, ": Best Average Fitness GA for:", yValsGA[len(yValsCCGA)-1])
+		fmt.Println(result.Title, ": Best Average Fitness CCGA:", yValsCCGA[len(yValsCCGA)-1])
 
 		line := charts.NewLine()
 
@@ -50,8 +67,8 @@ func PlotResults(output string, res [][]EvolutionResults) {
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
-				Max: int(math.Min(yValsCCGA[0], yValsGA[0])),
-				//Max:  1000,
+				//Max: int(math.Min(yValsCCGA[0], yValsGA[0])),
+				Max:  YMax,
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: result.XLabel,
