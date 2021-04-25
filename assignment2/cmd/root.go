@@ -9,6 +9,7 @@ import (
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
 	"github.com/cheggaaa/pb"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/stew/slice"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,7 +34,9 @@ var rootCmd = &cobra.Command{
 		if cmd.Flags().Changed("output") && filepath.Ext(output) != ".html" {
 			return errors.New("output figure argument must end with .html extension")
 		}
-		// Todo: Check at least one algorithm has been configured to run
+		if !(slice.Contains(algorithms, "ga") || slice.Contains(algorithms, "ccga") || slice.Contains(algorithms, "ccgahc")) {
+			return errors.New("at least one algorithm must be configured with -a ga,ccga,ccgahc")
+		}
 
 		fmt.Println("Starting with algorithms:", algorithms)
 		Start()
@@ -115,36 +118,62 @@ func RunGAs(function string) []chart.EvolutionResults {
 	for i := 0; i < repetitions; i++ {
 		// Run each separate GA repetition in its own goroutine
 		go func() {
-			// Standard Genetic Algorithm
-			YValsGA, BestFitnessGA, BestAssignmentGA := ga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
-			// CCGA
-			YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA := ccga.Run(false, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
-			// CCGAHC
-			//YValsCCGAHC, BestFitnessCCGAHC, BestAssignmentCCGAHC := ccga.Run(true, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+
+			var YValsGA, YValsCCGA, YValsCCGAHC []chart.BestFitness
+			var BestFitnessGA, BestFitnessCCGA, BestFitnessCCGAHC float64
+			var BestAssignmentGA, BestAssignmentCCGA, BestAssignmentCCGAHC []uint16
+
+			// Start Standard Genetic Algorithm
+			if slice.Contains(algorithms, "ga") {
+				fmt.Println("Starting GA")
+				YValsGA, BestFitnessGA, BestAssignmentGA = ga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			}
+			// Start CCGA
+			if slice.Contains(algorithms, "ccga") {
+				fmt.Println("Staring CCGA")
+				YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA = ccga.Run(false, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			}
+			// Start CCGAHC
+			if slice.Contains(algorithms, "ccgahc") {
+				fmt.Println("Starting CCGA-HC")
+				YValsCCGAHC, BestFitnessCCGAHC, BestAssignmentCCGAHC = ccga.Run(true, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
+			}
 
 			if evaluations != 0 {
 				results = append(results, chart.EvolutionResults{
 					Title:              Params.Label,
 					XLabel:             "function\nevals",
 					Iterations:         evaluations,
-					CCGAFitnessHistory: YValsCCGA,
-					BestFitnessCCGA:    BestFitnessCCGA,
-					BestAssignmentCCGA: BestAssignmentCCGA,
+
 					GAFitnessHistory:   YValsGA,
 					BestFitnessGA:      BestFitnessGA,
 					BestAssignmentGA:   BestAssignmentGA,
+
+					CCGAFitnessHistory: YValsCCGA,
+					BestFitnessCCGA:    BestFitnessCCGA,
+					BestAssignmentCCGA: BestAssignmentCCGA,
+
+					CCGAHCFitnessHistory: YValsCCGAHC,
+					BestFitnessCCGAHC:    BestFitnessCCGAHC,
+					BestAssignmentCCGAHC: BestAssignmentCCGAHC,
 				})
 			} else {
 				results = append(results, chart.EvolutionResults{
 					Title:              Params.Label,
 					XLabel:             "gens",
 					Iterations:         generations,
+
 					CCGAFitnessHistory: YValsCCGA,
 					BestFitnessCCGA:    BestFitnessCCGA,
 					BestAssignmentCCGA: BestAssignmentCCGA,
+
 					GAFitnessHistory:   YValsGA,
 					BestFitnessGA:      BestFitnessGA,
 					BestAssignmentGA:   BestAssignmentGA,
+
+					CCGAHCFitnessHistory: YValsCCGAHC,
+					BestFitnessCCGAHC:    BestFitnessCCGAHC,
+					BestAssignmentCCGAHC: BestAssignmentCCGAHC,
 				})
 			}
 			bar.Increment()

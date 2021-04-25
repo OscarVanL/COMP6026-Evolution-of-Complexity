@@ -39,26 +39,32 @@ func Run(hillClimb bool, evaluations int, generations int, popSize int, N int, f
 	if evaluations != 0 {
 		// Run CCGA for N function evaluations
 		for evals < evaluations {
-			species.doGeneration(function, mutationP, 0, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
+			species.doGeneration(function, hillClimb, mutationP, 0, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
 		}
 	} else if generations != 0 {
 		// Run CCGA for N generations
 		for gen := 0; gen < generations; gen++ {
-			species.doGeneration(function, mutationP, gen, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
+			species.doGeneration(function, hillClimb, mutationP, gen, &evals, &fMax, &bestFitness, &bestCoevolution, &bestFitnessHistory, &worstFitnessHistory)
 		}
 	}
 	return bestFitnessHistory, bestFitness, bestCoevolution
 }
 
-func (spec Species) doGeneration(fitness f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
+func (spec Species) doGeneration(fitness f.Fitness, hillClimb bool, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestCoevolution *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
 	so := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(so)
 
 	for s := 0; s < len(spec); s++ {
 		subpop := spec[s]
 
+		// Apply hill climb on elitist (best) individual
+		if hillClimb {
+			*evals += subpop[0].HillClimb(fitness, 20, 5000, r)
+		}
+
 		subpop.RouletteSetup()
 
+		// Apply CCGA normally
 		for i := 1; i<len(subpop); i++ {
 			individual := &subpop[i]
 			individual.CoevolveRoulette(CrossoverP, spec, fitness, r)
@@ -87,6 +93,45 @@ func (spec Species) doGeneration(fitness f.Fitness, mutationP float32, gen int, 
 	}
 }
 
+// HillClimb performs a stochastic hill climb to better explore the best individual
+// stepSize is a multiplier applied to a random normally distributed offset value selected
+func (individual *Individual) HillClimb(fitness f.Fitness, iters int, stepSize int, r *rand.Rand) int {
+	BestFitness := individual.Fitness
+	BestGene := individual.Gene
+
+	for i:=0; i<iters; i++ {
+		offset := 0
+		// Randomly generate offsets using normal distribution until a valid offset is chosen
+		for offset == 0 && (int(BestGene) +offset > 0) && (int(BestGene) +offset <= 65535) {
+			offset = int(r.NormFloat64() * float64(stepSize))
+		}
+
+		candidate := BestGene
+		// Update individual's gene
+		if offset > 0 {
+			candidate += uint16(offset)
+		} else {
+			candidate -= uint16(math.Abs(float64(offset)))
+		}
+
+		// Evaluate candidate's fitness
+		individual.Coevolution[individual.SpeciesId] = candidate
+		candidateFitness := fitness(individual.Coevolution)
+
+		// Update hill climber if fitness is improved
+		if candidateFitness < BestFitness {
+			BestGene = candidate
+			BestFitness = candidateFitness
+		}
+	}
+
+	individual.Gene = BestGene
+	individual.Fitness = BestFitness
+
+	// Return iters to increment the function evaluation counter
+	return iters
+}
+
 // SelectNewPopulation updates the individuals in the subpopulation using tournament selection
 func (spec Species) SelectNewPopulation() {
 	// Make deep copy of last generation's subpopulation
@@ -110,7 +155,6 @@ func (spec Species) SelectNewPopulation() {
 			}
 		}
 	}
-
 }
 
 // InitCoevolutions creates initial subpopulations by coevolving with random individuals from each other species.

@@ -14,13 +14,18 @@ type EvolutionResults struct {
 	Title              string        // Title to represent result
 	XLabel             string        // Label to give X Axis
 	Iterations         int           // Number of function evaluations represented in charts
-	CCGAFitnessHistory []BestFitness // Best fitness over time for CCGA
+
+	GAFitnessHistory []BestFitness // Best fitness over function evaluations for GA
+	BestFitnessGA    float64       // Best Fitness from standard GA
+	BestAssignmentGA []uint16      // Best assignment of genes
+
+	CCGAFitnessHistory []BestFitness // Best fitness over function evaluations for CCGA
 	BestFitnessCCGA    float64       // Best Fitness from CCGA-1
 	BestAssignmentCCGA []uint16      // Best assignment of genes
 
-	GAFitnessHistory []BestFitness // Best fitness over time for GA
-	BestFitnessGA    float64       // Best Fitness from standard GA
-	BestAssignmentGA []uint16      // Best assignment of genes
+	CCGAHCFitnessHistory []BestFitness // Best fitness over function evaluations for CCGA-HC
+	BestFitnessCCGAHC    float64       // Best Fitness from CCGA-HC
+	BestAssignmentCCGAHC []uint16      // Best assignment of genes
 }
 
 type BestFitness struct {
@@ -50,9 +55,10 @@ func PlotResults(output string, res [][]EvolutionResults) {
 			YMax = 16
 		}
 		// Calculate average result, filling in any gaps in the data
-		yValsGA, yValsCCGA := averageResults(result.Iterations, res[i])
-		fmt.Println(result.Title, ": Best Average Fitness GA for:", yValsGA[len(yValsCCGA)-1])
-		fmt.Println(result.Title, ": Best Average Fitness CCGA:", yValsCCGA[len(yValsCCGA)-1])
+		yValsGA, yValsCCGA, yValsCCGAHC := averageResults(result.Iterations, res[i])
+		fmt.Println(result.Title, ": Best Average Fitness GA for:", yValsGA[result.Iterations-1])
+		fmt.Println(result.Title, ": Best Average Fitness CCGA:", yValsCCGA[result.Iterations-1])
+		fmt.Println(result.Title, ": Best Average Fitness CCGA-HC:", yValsCCGAHC[result.Iterations-1])
 
 		line := charts.NewLine()
 
@@ -81,6 +87,7 @@ func PlotResults(output string, res [][]EvolutionResults) {
 		line.SetXAxis(xVals).
 			AddSeries("Standard GA", convertLineData(yValsGA)).
 			AddSeries("CCGA-1", convertLineData(yValsCCGA)).
+			AddSeries("CCGA-HC", convertLineData(yValsCCGAHC)).
 			SetSeriesOptions(
 				charts.WithLineChartOpts(opts.LineChart{
 					Smooth: true,
@@ -105,28 +112,31 @@ func initXValsSlice(iterations int) []int {
 	return xVals
 }
 
-func averageResults(iterations int, results []EvolutionResults) ([]float64, []float64) {
-	allYValsGA, allYValsCCGA := make([][]float64, iterations), make([][]float64, iterations)
-	yValsGAAveraged, yValsCCGAAveraged := make([]float64, iterations), make([]float64, iterations)
+func averageResults(iterations int, results []EvolutionResults) ([]float64, []float64, []float64) {
+	allYValsGA, allYValsCCGA, allYValsCCGAHC := make([][]float64, iterations), make([][]float64, iterations), make([][]float64, iterations)
+	yValsGAAveraged, yValsCCGAAveraged, yValsCCGAHCAveraged := make([]float64, iterations), make([]float64, iterations), make([]float64, iterations)
 
 	// Fill in missing points for each result
 	for res := 0; res < len(results); res++ {
 		allYValsGA[res] = fillMissingPoints(iterations, results[res].GAFitnessHistory)
 		allYValsCCGA[res] = fillMissingPoints(iterations, results[res].CCGAFitnessHistory)
+		allYValsCCGAHC[res] = fillMissingPoints(iterations, results[res].CCGAHCFitnessHistory)
 	}
 
 	// Calculate averages for each point
 	for i := 0; i < iterations; i++ {
-		pointSumGA, pointSumCCGA := 0.0, 0.0
+		pointSumGA, pointSumCCGA, pointSumCCGAHC := 0.0, 0.0, 0.0
 		for res := 0; res < len(results); res++ {
 			pointSumGA += allYValsGA[res][i]
 			pointSumCCGA += allYValsCCGA[res][i]
+			pointSumCCGAHC += allYValsCCGAHC[res][i]
 		}
 		yValsGAAveraged[i] = pointSumGA / float64(len(results))
 		yValsCCGAAveraged[i] = pointSumCCGA / float64(len(results))
+		yValsCCGAHCAveraged[i] = pointSumCCGAHC / float64(len(results))
 	}
 
-	return yValsGAAveraged, yValsCCGAAveraged
+	return yValsGAAveraged, yValsCCGAAveraged, yValsCCGAHCAveraged
 }
 
 // fillMissingPoints fills in gaps in results data so that scores are properly spaced on plots
