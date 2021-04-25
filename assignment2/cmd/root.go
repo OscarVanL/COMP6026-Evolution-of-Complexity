@@ -7,6 +7,7 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/ga"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
+	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/result"
 	"github.com/cheggaaa/pb"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/stew/slice"
@@ -30,9 +31,6 @@ var rootCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("cpuprofile") && filepath.Ext(cpuprofile) != ".prof" {
 			return errors.New("cpuprofile file argument must end with .prof extension")
-		}
-		if cmd.Flags().Changed("output") && filepath.Ext(output) != ".html" {
-			return errors.New("output figure argument must end with .html extension")
 		}
 		if !(slice.Contains(algorithms, "ga") || slice.Contains(algorithms, "ccga") || slice.Contains(algorithms, "ccgahc")) {
 			return errors.New("at least one algorithm must be configured with -a ga,ccga,ccgahc")
@@ -94,9 +92,12 @@ func Start() {
 	//fmt.Println("Benchmarking Rosenbrock Function...")
 	//results = append(results, RunGAs("rosenbrock"))
 
-	fmt.Println("Creating Charts")
+
 	if output != "" {
+		fmt.Println("Creating Charts")
 		chart.PlotResults(output, results)
+		fmt.Println("Writing Results JSON")
+		result.WriteResults(output, results)
 	}
 }
 
@@ -125,17 +126,14 @@ func RunGAs(function string) []chart.EvolutionResults {
 
 			// Start Standard Genetic Algorithm
 			if slice.Contains(algorithms, "ga") {
-				fmt.Println("Starting GA")
 				YValsGA, BestFitnessGA, BestAssignmentGA = ga.Run(evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
 			}
 			// Start CCGA
 			if slice.Contains(algorithms, "ccga") {
-				fmt.Println("Staring CCGA")
 				YValsCCGA, BestFitnessCCGA, BestAssignmentCCGA = ccga.Run(false, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
 			}
 			// Start CCGAHC
 			if slice.Contains(algorithms, "ccgahc") {
-				fmt.Println("Starting CCGA-HC")
 				YValsCCGAHC, BestFitnessCCGAHC, BestAssignmentCCGAHC = ccga.Run(true, evaluations, generations, popSize, Params.N, Params.Function, Params.MutationP)
 			}
 
@@ -179,6 +177,10 @@ func RunGAs(function string) []chart.EvolutionResults {
 			bar.Increment()
 			waitGroup.Done()
 		}()
+
+		// Sleep 50ms between starting of each goroutine to avoid similar random numbers between runs
+		// (as each goroutine's rand is seeded with the unix time)
+		time.Sleep(50 * time.Millisecond)
 	}
 	waitGroup.Wait()
 	bar.Finish()

@@ -11,9 +11,9 @@ import (
 )
 
 type EvolutionResults struct {
-	Title              string        // Title to represent result
-	XLabel             string        // Label to give X Axis
-	Iterations         int           // Number of function evaluations represented in charts
+	Title      string // Title to represent result
+	XLabel     string // Label to give X Axis
+	Iterations int    // Number of function evaluations represented in charts
 
 	GAFitnessHistory []BestFitness // Best fitness over function evaluations for GA
 	BestFitnessGA    float64       // Best Fitness from standard GA
@@ -37,8 +37,6 @@ func PlotResults(output string, res [][]EvolutionResults) {
 	page := components.NewPage()
 
 	xVals := initXValsSlice(res[0][0].Iterations)
-
-
 
 	for i := 0; i < len(res); i++ {
 		result := res[i][0]
@@ -74,7 +72,7 @@ func PlotResults(output string, res [][]EvolutionResults) {
 			charts.WithYAxisOpts(opts.YAxis{
 				Name: "best individual",
 				//Max: int(math.Min(yValsCCGA[0], yValsGA[0])),
-				Max:  YMax,
+				Max: YMax,
 			}),
 			charts.WithXAxisOpts(opts.XAxis{
 				Name: result.XLabel,
@@ -97,7 +95,7 @@ func PlotResults(output string, res [][]EvolutionResults) {
 		page.AddCharts(line)
 	}
 
-	f, err := os.Create(output)
+	f, err := os.Create(output + ".html")
 	if err != nil {
 		panic(err)
 	}
