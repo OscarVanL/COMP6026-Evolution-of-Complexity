@@ -7,6 +7,14 @@ import (
 	"testing"
 )
 
+var r *rand.Rand
+
+func init() {
+	s := rand.NewSource(0)
+	r = rand.New(s)
+}
+
+
 func TestSpecies_InitCoevolutions(t *testing.T) {
 	input := Species{
 		Population{
@@ -27,37 +35,20 @@ func TestSpecies_InitCoevolutions(t *testing.T) {
 	assert.Equal(t, uint16(6789), input[1][1].Coevolution[1], "Coevolution initialisation should keep individual's own gene")
 }
 
-func TestSpecies_Mutate_OneProbability(t *testing.T) {
-	input := Population{
-		Individual{0, 0x0000, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
-		Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0x0000, 0xFFFF}},
-	}
-	input.Mutate(0.0)
+func TestIndividual_Mutate_OneProbability(t *testing.T) {
+	input := Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0xFFFF, 0xFFFF}}
+	input.Mutate(1.0, r)
 
-	assert.Equal(t, uint16(0x0000), input[1].Gene, "Mutation with mutationP=1 should change all bits")
-	assert.Equal(t, uint16(0x0000), input[1].Coevolution[0], "Mutation with mutationP=1 should change all bits")
+	assert.Equal(t, uint16(0x0000), input.Gene, "Mutation with mutationP=1 should change all bits")
+	assert.Equal(t, uint16(0x0000), input.Coevolution[0], "Mutation with mutationP=1 should change all bits")
 }
 
 func TestSpecies_Mutate_ZeroProbability(t *testing.T) {
-	input := Population{
-		Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
-		Individual{0, 0x0000, 0, 0, 0.0, []uint16{0x0000, 0x0000}},
-	}
-	input.Mutate(0.0)
+	input := Individual{0, 0x0000, 0, 0, 0.0, []uint16{0x0000, 0x0000}}
+	input.Mutate(0.0, r)
 
-	assert.Equal(t, uint16(0x0000), input[1].Gene, "Mutation with mutationP=0 should not change any bits")
-	assert.Equal(t, uint16(0x0000), input[1].Coevolution[0], "Mutation with mutationP=0 should not change any bits")
-}
-
-func TestSpecies_Mutate_Elitist(t *testing.T) {
-	input := Population{
-		Individual{0, 0xFFFF, 0, 0, 0, []uint16{0x0000, 0xFFFF}},
-	}
-
-	input.Mutate(1.0)
-
-	assert.Equal(t, uint16(0xFFFF), input[0].Gene, "Mutation should follow elitist strategy")
-	assert.Equal(t, uint16(0x0000), input[0].Coevolution[0], "Mutation should follow elitist strategy")
+	assert.Equal(t, uint16(0x0000), input.Gene, "Mutation with mutationP=0 should not change any bits")
+	assert.Equal(t, uint16(0x0000), input.Coevolution[0], "Mutation with mutationP=0 should not change any bits")
 }
 
 func TestSpecies_CoevolveRoulette_OneProbability(t *testing.T) {
@@ -72,8 +63,8 @@ func TestSpecies_CoevolveRoulette_OneProbability(t *testing.T) {
 			Individual{1, 0xFFFF, 0, 0, 0.0, []uint16{0x0000, 0xFFFF}},
 		},
 	}
-	input[0].CoevolveRoulette(1.0, input, f.TestFunc)
-	input[1].CoevolveRoulette(1.0, input, f.TestFunc)
+	input[0][1].CoevolveRoulette(1.0, input, f.TestFunc, r)
+	input[1][1].CoevolveRoulette(1.0, input, f.TestFunc, r)
 
 	expectedGene1 := (input[0][1].Coevolution[0] == 0x0FF0) || (input[0][1].Coevolution[0] == 0xF00F)
 	assert.True(t, expectedGene1, "Genes were not crossed over as expected")
@@ -94,36 +85,11 @@ func TestSpecies_CoevolveRoulette_ZeroProbability(t *testing.T) {
 			Individual{1, 0x0000, 0, 0, 1.0, []uint16{0x0000, 0xFFFF}},
 		},
 	}
-	input[0].CoevolveRoulette(0.0, input, f.TestFunc)
-	input[1].CoevolveRoulette(0.0, input, f.TestFunc)
+	input[0][1].CoevolveRoulette(0.0, input, f.TestFunc, r)
+	input[1][1].CoevolveRoulette(0.0, input, f.TestFunc, r)
 
 	assert.Equal(t, uint16(0xFFFF), input[0][1].Coevolution[0], "Coevolved genes should not change when crossoverP is 0")
-	assert.Equal(t, uint16(0xFFFF), input[1][1].Coevolution[1], "Coevolved genes should not change when crossoverP is 0")
-}
-
-// TestSpecies_CoevolveRoulette_Elitist ensures elitist strategy is applied by skipping crossover on the 0-index individual of each species
-// When pre-sorted, the 0-index individual is the one with highest fitness, and is preserved without genetic functions.
-func TestSpecies_CoevolveRoulette_Elitist(t *testing.T) {
-	// To make test deterministic, create individuals with certain roulette selection probability
-	input := Species{
-		Population{
-			Individual{0, 0x0000, 0, 0, 0.0, []uint16{0x0000, 0xFFFF}},
-			Individual{0, 0xFFFF, 0, 0, 1.0, []uint16{0xFFFF, 0xFFFF}},
-		},
-		Population{
-			Individual{1, 0xFFFF, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
-			Individual{1, 0x0000, 0, 0, 1.0, []uint16{0x0000, 0xFFFF}},
-		},
-	}
-
-	// Crossover with 100% probability
-	input[0].CoevolveRoulette(1.0, input, f.TestFunc)
-	input[1].CoevolveRoulette(1.0, input, f.TestFunc)
-
-	assert.Equal(t, uint16(0x0000), input[0][0].Coevolution[0], "Genes for 0-index individual should remain unchanged")
-	assert.Equal(t, uint16(0xFFFF), input[0][0].Coevolution[1], "Genes for 0-index individual should remain unchanged")
-	assert.Equal(t, uint16(0xFFFF), input[1][0].Coevolution[0], "Genes for 0-index individual should remain unchanged")
-	assert.Equal(t, uint16(0x0000), input[1][0].Coevolution[1], "Genes for 0-index individual should remain unchanged")
+	assert.Equal(t, uint16(0x0000), input[1][1].Coevolution[1], "Coevolved genes should not change when crossoverP is 0")
 }
 
 // TestPopulation_RouletteSetup tests if the roulette setup assigns SelectProbabilities correctly.
@@ -154,8 +120,6 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 	}
 	expectedSelectionRatio := []float64{0.1, 0.7, 0.1, 0.1}
 
-	s := rand.NewSource(0)
-	r := rand.New(s)
 	// Run roulette selection a large number of times
 	results := make(map[uint16]float64)
 	for i := 0; i < 100000; i++ {

@@ -26,10 +26,18 @@ Check available launch args:
 
 `assignment2.exe --help`
 
-## Test
+## Unit Tests
 
 `cd assignment2`
 
 `go build .`
 
 `go test ./...`
+
+## Sources
+
+[Roulette Selection Pseudocode](https://stackoverflow.com/a/177278/6008271)
+
+[Two-Point Crossover via Bit Masks Pseudocode](https://stackoverflow.com/a/11705889/6008271)
+
+[Golang Bit Flips](https://stackoverflow.com/a/23192263/6008271)
