@@ -33,6 +33,7 @@ type BestFitness struct {
 	Fitness float64
 }
 
+// PlotResults plots the average fitness over function evaluations for function evaluated and saves these to a HTML file.
 func PlotResults(output string, res [][]EvolutionResults) {
 	page := components.NewPage()
 
@@ -110,6 +111,7 @@ func initXValsSlice(iterations int) []int {
 	return xVals
 }
 
+// averageResults calculates the average results from several runs of the GAs
 func averageResults(iterations int, results []EvolutionResults) ([]float64, []float64, []float64) {
 	allYValsGA, allYValsCCGA, allYValsCCGAHC := make([][]float64, iterations), make([][]float64, iterations), make([][]float64, iterations)
 	yValsGAAveraged, yValsCCGAAveraged, yValsCCGAHCAveraged := make([]float64, iterations), make([]float64, iterations), make([]float64, iterations)
@@ -162,6 +164,7 @@ func fillMissingPoints(iterations int, BestFitnessHistory []BestFitness) []float
 	return yVals
 }
 
+// convertLineData converts the float64 slice into values used by go-echarts
 func convertLineData(elems []float64) []opts.LineData {
 	points := make([]opts.LineData, 0)
 	for i := 0; i < len(elems); i++ {

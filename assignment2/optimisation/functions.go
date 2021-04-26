@@ -16,6 +16,7 @@ type Params struct {
 	ScaleMax  float64
 }
 
+// GetParams gets the parameters required for using the algorithms on an optimisation function
 func GetParams(algo string) (Params, error) {
 	switch algo {
 	case "rastrigin":
@@ -163,7 +164,7 @@ func Rosenbrock(x []uint16) float64 {
 	return sum
 }
 
-func TestFunc(x []uint16) float64 {
+func TestFunc(_ []uint16) float64 {
 	return 0.0
 }
 

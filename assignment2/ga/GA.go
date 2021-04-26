@@ -4,8 +4,6 @@ import (
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/chart"
 	"github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/common"
 	f "github.com/OscarVanL/COMP6026-Evolution-of-Complexity/assignment2/optimisation"
-	"github.com/jinzhu/copier"
-	"log"
 	"math"
 	"math/rand"
 	"sort"
@@ -47,9 +45,8 @@ func Run(evaluations int, generations int, popSize int, N int, function f.Fitnes
 	return bestFitnessHistory, bestFitness, bestGenes
 }
 
+// doGeneration performs one generation of the GA. This function should be repeatedly run until some terminating condition is met.
 func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen int, evals *int, fMax *float64, bestFitness *float64, bestGenes *[]uint16, bestFitnessHistory *[]chart.BestFitness, worstFitnessHistory *[]float64) {
-	// Select members to be in new population via tournament selection
-	//pop.SelectNewPopulation()
 	// Perform two-point crossover for each individual
 	pop.Crossover(CrossoverP, function)
 	// Mutate each individual's genes
@@ -74,29 +71,6 @@ func (pop Population) doGeneration(function f.Fitness, mutationP float32, gen in
 	}
 	*worstFitnessHistory = append(*worstFitnessHistory, worstGenFitness)
 	*fMax = common.CalculateFMax(*worstFitnessHistory, W)
-}
-
-// SelectNewPopulation updates the individuals in the population using tournament selection
-func (pop Population) SelectNewPopulation() {
-	// Make deep copy of last generation's population
-	lastGeneration := Population{}
-	err := copier.CopyWithOption(&lastGeneration, &pop, copier.Option{DeepCopy: true})
-	if err != nil {
-		log.Fatal("Unable to make clone of last population via deep copy:", err)
-	}
-
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
-
-	// Perform tournament selection (Experiment 9)
-	for i := 1; i < len(pop); i++ {
-		individualA, individualB := lastGeneration[r.Intn(len(pop))], lastGeneration[r.Intn(len(pop))]
-		if individualA.Fitness > individualB.Fitness {
-			pop[i] = individualB
-		} else {
-			pop[i] = individualA
-		}
-	}
 }
 
 // Mutate performs bit-flip mutation on each of the individual's genes
@@ -129,6 +103,7 @@ func (pop Population) Mutate(MutationP float32) {
 	}
 }
 
+// Crossover performs Two Point Crossover with another roulette selected individual.
 func (pop Population) Crossover(crossoverP float32, fitness f.Fitness) {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
@@ -206,8 +181,8 @@ func (pop Population) EvalFitness(fitness f.Fitness, fMax float64) int {
 	return len(pop)
 }
 
+// SortFitness sorts the population slice by fittest (smallest fitness score) to least fit (largest fitness score).
 func (pop Population) SortFitness() {
-	// Sort the populations individuals by fittest (smallest) to least fit (largest)
 	sort.Slice(pop, func(i, j int) bool {
 		return pop[i].Fitness < pop[j].Fitness
 	})

@@ -21,6 +21,7 @@ type Result struct {
 	StdDev    float64
 }
 
+// WriteResults is used to write the experiment results to a JSON file, including mean and standard deviation calculations.
 func WriteResults(output string, res [][]chart.EvolutionResults) {
 	var allResults []FunctionResults
 

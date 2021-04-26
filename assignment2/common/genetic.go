@@ -5,7 +5,6 @@ package common
 
 import (
 	"errors"
-	"fmt"
 	"math"
 )
 
@@ -24,7 +23,7 @@ func TwoPointCrossover(parentA uint16, parentB uint16) (uint16, uint16) {
 	return output1, output2
 }
 
-// TwoPointCrossoverGA for multi-gene crossover used in standard GA.
+// TwoPointCrossoverGA for multi-gene crossover. Was used in standard GA, but later removed in favour of normal crossover.
 func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16, error) {
 	if len(parentA) != len(parentB) {
 		return nil, nil, errors.New("gene lengths must match")
@@ -91,13 +90,6 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 	return offspringA, offspringB, nil
 }
 
-func printGenesHex(gene []uint16) {
-	for i := 0; i < len(gene); i++ {
-		fmt.Printf("%s, ", fmt.Sprintf("%04X", gene[i]))
-	}
-	fmt.Println()
-}
-
 // CalculateFMax finds the new FMax value for Scaling Window calculations
 func CalculateFMax(worstFitnessHistory []float64, W int) float64 {
 	var worstFitnessWindow []float64
@@ -125,7 +117,7 @@ func HasBit(n uint16, pos uint) bool {
 
 // SetBit Sets bit at index pos to 1
 func SetBit(n uint16, pos uint) uint16 {
-	n |= (1 << pos)
+	n |= 1 << pos
 	return n
 }
 

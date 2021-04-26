@@ -100,6 +100,8 @@ func Start() {
 	}
 }
 
+// RunGAs runs the genetic algorithms on an optimisation function and returns the fitness scores over the configured
+// iterations or generations for later plotting.
 func RunGAs(function string) []chart.EvolutionResults {
 	Params, err := f.GetParams(function)
 	if err != nil {
