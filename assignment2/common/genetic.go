@@ -29,7 +29,7 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 	if len(parentA) != len(parentB) {
 		return nil, nil, errors.New("gene lengths must match")
 	}
-	if len(parentA) % 2 != 0 {
+	if len(parentA)%2 != 0 {
 		return nil, nil, errors.New("must use even number of genes for Two-Point Crossover")
 	}
 
@@ -39,11 +39,11 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 	offspringB := make([]uint16, len(parentA))
 
 	// Calculate parameters required for constructing bit masks
-	widthLR := 0.25 * float64(len(parentA)) * 4   // Number of bytes to keep in left and right parts of 2-point-crossover
-	fullMaskLR := int(math.Floor(widthLR / 4))    // Number of full-bytes to keep on left and right parts
-	boundaryMaskRequired := int(widthLR) % 4 == 2 // Whether we have half-bytes at boundary
-	widthC := 0.5 * float64(len(parentA)) * 4  // Number of bytes to keep in central part of 2-point crossover
-	fullMaskC := int(math.Floor(widthC / 4))  // Number of full-bytes in central part
+	widthLR := 0.25 * float64(len(parentA)) * 4 // Number of bytes to keep in left and right parts of 2-point-crossover
+	fullMaskLR := int(math.Floor(widthLR / 4))  // Number of full-bytes to keep on left and right parts
+	boundaryMaskRequired := int(widthLR)%4 == 2 // Whether we have half-bytes at boundary
+	widthC := 0.5 * float64(len(parentA)) * 4   // Number of bytes to keep in central part of 2-point crossover
+	fullMaskC := int(math.Floor(widthC / 4))    // Number of full-bytes in central part
 
 	if boundaryMaskRequired {
 		fullMaskC -= 1
@@ -52,7 +52,7 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 	// Create masks for two-point-crossover upon parent A and parent B
 	bytesAdded := 0
 	// Left part of crossover
-	for i:=bytesAdded; i<bytesAdded+fullMaskLR; i++ {
+	for i := bytesAdded; i < bytesAdded+fullMaskLR; i++ {
 		mask1[i] = 0xFFFF
 		mask2[i] = 0x0000
 	}
@@ -64,7 +64,7 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 		bytesAdded += 1
 	}
 	// Central crossover point
-	for i:=bytesAdded; i<bytesAdded+fullMaskC; i++ {
+	for i := bytesAdded; i < bytesAdded+fullMaskC; i++ {
 		mask1[i] = 0x0000
 		mask2[i] = 0xFFFF
 	}
@@ -76,14 +76,14 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 		bytesAdded += 1
 	}
 	// Right part of crossover
-	for i:=bytesAdded; i<bytesAdded+fullMaskLR; i++ {
+	for i := bytesAdded; i < bytesAdded+fullMaskLR; i++ {
 		mask1[i] = 0xFFFF
 		mask2[i] = 0x0000
 	}
 	bytesAdded += fullMaskLR
 
 	// Create offspring
-	for i:=0; i<len(parentA); i++ {
+	for i := 0; i < len(parentA); i++ {
 		offspringA[i] = (parentA[i] & mask1[i]) ^ (parentB[i] & mask2[i])
 		offspringB[i] = (parentA[i] & mask2[i]) ^ (parentB[i] & mask1[i])
 	}
@@ -92,7 +92,7 @@ func TwoPointCrossoverGA(parentA []uint16, parentB []uint16) ([]uint16, []uint16
 }
 
 func printGenesHex(gene []uint16) {
-	for i:=0; i<len(gene); i++ {
+	for i := 0; i < len(gene); i++ {
 		fmt.Printf("%s, ", fmt.Sprintf("%04X", gene[i]))
 	}
 	fmt.Println()

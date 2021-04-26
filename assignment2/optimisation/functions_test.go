@@ -68,7 +68,7 @@ func TestScaleInputs(t *testing.T) {
 	min := 0.0
 	max := 6553.5
 	scaled := ScaleInputs(input, min, max)
-	for i:=0; i<len(input); i++ {
+	for i := 0; i < len(input); i++ {
 		assert.InDelta(t, float64(input[i])/10, scaled[i], 0.01, "ScaleInputs did not scale inputs correctly")
 	}
 }

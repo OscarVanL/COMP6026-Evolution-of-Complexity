@@ -86,7 +86,7 @@ func TestPopulation_Crossover_Elitist(t *testing.T) {
 
 	// Crossover with 100% probability
 	input.Crossover(1.0, f.TestFunc)
-	
+
 	assert.Equal(t, uint16(0x0000), input[0].Genes[0], "Genes for 0-index individual should remain unchanged")
 }
 
@@ -103,7 +103,7 @@ func TestPopulation_RouletteSetup(t *testing.T) {
 
 	input.RouletteSetup()
 
-	for i:=0; i<len(input); i++ {
+	for i := 0; i < len(input); i++ {
 		fmt.Println(input[i].SelectProbability)
 		assert.InDelta(t, expectedSelectProbability[i], input[i].SelectProbability, 0.01, "Roulette Selection Probabilities were not assigned as expected")
 	}
@@ -124,7 +124,7 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 	r := rand.New(s)
 	// Run roulette selection a large number of times
 	results := make(map[uint16]float64)
-	for i:=0; i<100000; i++ {
+	for i := 0; i < 100000; i++ {
 		results[input.RouletteSelection(r).Genes[0]] += 1.0
 	}
 
@@ -134,11 +134,10 @@ func TestPopulation_RouletteSelection(t *testing.T) {
 	}
 
 	// Check probabilities of selection are correct, within a 5% margin of error to accommodate randomness
-	for i:=0; i<len(results); i++ {
+	for i := 0; i < len(results); i++ {
 		assert.InDelta(t, expectedSelectionRatio[i], results[uint16(i)], 0.05, "Roulette Selection did not sample proportionately")
 	}
 }
-
 
 func TestPopulation_EvalFitness(t *testing.T) {
 	input := Population{

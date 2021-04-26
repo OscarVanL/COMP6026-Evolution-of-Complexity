@@ -22,7 +22,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "coevolve",
 	Short: "Cooperative Coevolution implementation for COMP6026",
-	Long:  `An implementation of DOI 10.1007/3-540-58484-6_269 'A Cooperative Coevolutionary Approach to Function Optimization'.'`,
+	Long:  `An implementation of DOI 10.1007/3-540-58484-6_269 'A Cooperative Coevolutionary Approach to Function Optimization'.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("evaluations") && cmd.Flags().Changed("generations") {
 			return errors.New("cannot set evaluations and generations, pick one")
@@ -57,7 +57,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&popSize, "population", "p", 100, "Population size")
 	rootCmd.Flags().IntVarP(&repetitions, "repetitions", "r", 50, "Number of times to repeat experiment")
 	rootCmd.Flags().StringVar(&cpuprofile, "cpuprofile", "", "Profile CPU usage to file (eg: assignment2.prof)")
-	rootCmd.Flags().StringVarP(&output, "output", "o", "", "Fitness Figure output file (eg: charts.html)")
+	rootCmd.Flags().StringVarP(&output, "output", "o", "", "Name of Fitness Plots and Results data files")
 }
 
 func Execute() {
@@ -91,7 +91,6 @@ func Start() {
 	results = append(results, RunGAs("ackley"))
 	//fmt.Println("Benchmarking Rosenbrock Function...")
 	//results = append(results, RunGAs("rosenbrock"))
-
 
 	if output != "" {
 		fmt.Println("Creating Charts")
@@ -139,13 +138,13 @@ func RunGAs(function string) []chart.EvolutionResults {
 
 			if evaluations != 0 {
 				results = append(results, chart.EvolutionResults{
-					Title:              Params.Label,
-					XLabel:             "function\nevals",
-					Iterations:         evaluations,
+					Title:      Params.Label,
+					XLabel:     "function\nevals",
+					Iterations: evaluations,
 
-					GAFitnessHistory:   YValsGA,
-					BestFitnessGA:      BestFitnessGA,
-					BestAssignmentGA:   BestAssignmentGA,
+					GAFitnessHistory: YValsGA,
+					BestFitnessGA:    BestFitnessGA,
+					BestAssignmentGA: BestAssignmentGA,
 
 					CCGAFitnessHistory: YValsCCGA,
 					BestFitnessCCGA:    BestFitnessCCGA,
@@ -157,17 +156,17 @@ func RunGAs(function string) []chart.EvolutionResults {
 				})
 			} else {
 				results = append(results, chart.EvolutionResults{
-					Title:              Params.Label,
-					XLabel:             "gens",
-					Iterations:         generations,
+					Title:      Params.Label,
+					XLabel:     "gens",
+					Iterations: generations,
 
 					CCGAFitnessHistory: YValsCCGA,
 					BestFitnessCCGA:    BestFitnessCCGA,
 					BestAssignmentCCGA: BestAssignmentCCGA,
 
-					GAFitnessHistory:   YValsGA,
-					BestFitnessGA:      BestFitnessGA,
-					BestAssignmentGA:   BestAssignmentGA,
+					GAFitnessHistory: YValsGA,
+					BestFitnessGA:    BestFitnessGA,
+					BestAssignmentGA: BestAssignmentGA,
 
 					CCGAHCFitnessHistory: YValsCCGAHC,
 					BestFitnessCCGAHC:    BestFitnessCCGAHC,

@@ -32,7 +32,7 @@ func TestTwoPointCrossoverGA_HalfMask(t *testing.T) {
 	inputA := []uint16{0xFFFF, 0x0000, 0x0F0F, 0x0FF0, 0x0000, 0xFFFF}
 	inputB := []uint16{0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE, 0xFFFF}
 	offspringA, offspringB, err := TwoPointCrossoverGA(inputA, inputB)
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 	}
@@ -49,7 +49,7 @@ func TestTwoPointCrossoverGA_FullMask(t *testing.T) {
 	inputA := []uint16{0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}
 	inputB := []uint16{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}
 	offspringA, offspringB, err := TwoPointCrossoverGA(inputA, inputB)
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 	}
@@ -63,7 +63,7 @@ func TestTwoPointCrossoverGA_FullMask(t *testing.T) {
 	inputA = []uint16{0x0000, 0x1111, 0x2222, 0x3333}
 	inputB = []uint16{0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD}
 	offspringA, offspringB, err = TwoPointCrossoverGA(inputA, inputB)
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 	}
@@ -72,7 +72,6 @@ func TestTwoPointCrossoverGA_FullMask(t *testing.T) {
 	assert.Equal(t, offspringA, expectedA, "Offspring should have two-point crossover")
 	assert.Equal(t, offspringB, expectedB, "Offspring should have two-point crossover")
 }
-
 
 func TestCalculateFMax(t *testing.T) {
 	fitnesswindow := []float64{123.0, 321.0, 242.0}
@@ -90,16 +89,16 @@ func TestCalculateFMax(t *testing.T) {
 
 func TestHasBit(t *testing.T) {
 	// Test all bits
-	for pos:=0; pos<16; pos++ {
+	for pos := 0; pos < 16; pos++ {
 		assert.True(t, HasBit(uint16(0xFFFF), uint(pos)), fmt.Sprintf("Unexpected bit at index: %d", pos))
 	}
 	// Test no bits
-	for pos:=0; pos<16; pos++ {
+	for pos := 0; pos < 16; pos++ {
 		assert.False(t, HasBit(uint16(0x0000), uint(pos)), fmt.Sprintf("Unexpected bit at index: %d", pos))
 	}
 	// Test number '1234'.
 	bits1234 := []bool{false, true, false, false, true, false, true, true, false, false, true, false, false, false, false, false}
-	for pos:=0; pos<16; pos++ {
+	for pos := 0; pos < 16; pos++ {
 		assert.Equal(t, bits1234[pos], HasBit(uint16(1234), uint(pos)), fmt.Sprintf("Unexpected bit at index: %d", pos))
 	}
 }
@@ -107,7 +106,7 @@ func TestHasBit(t *testing.T) {
 func TestSetBit(t *testing.T) {
 	// Test setting all bits {
 	value := uint16(0x0000)
-	for pos:=0; pos<16; pos++ {
+	for pos := 0; pos < 16; pos++ {
 		value = SetBit(value, uint(pos))
 	}
 	assert.Equal(t, uint16(0xFFFF), value, fmt.Sprintf("SetBit did not set all bits"))
@@ -121,7 +120,7 @@ func TestSetBit(t *testing.T) {
 func TestClearBit(t *testing.T) {
 	// Test clearing all bits
 	value := uint16(0xFFFF)
-	for pos:=0; pos<16; pos++ {
+	for pos := 0; pos < 16; pos++ {
 		value = ClearBit(value, uint(pos))
 	}
 	assert.Equal(t, uint16(0x0000), value, fmt.Sprintf("ClearBit did not clear all bits"))

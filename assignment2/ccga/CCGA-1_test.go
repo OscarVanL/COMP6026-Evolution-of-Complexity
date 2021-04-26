@@ -29,9 +29,9 @@ func TestSpecies_InitCoevolutions(t *testing.T) {
 
 func TestSpecies_Mutate_OneProbability(t *testing.T) {
 	input := Population{
-			Individual{0, 0x0000, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
-			Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0x0000, 0xFFFF}},
-		}
+		Individual{0, 0x0000, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
+		Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0x0000, 0xFFFF}},
+	}
 	input.Mutate(0.0)
 
 	assert.Equal(t, uint16(0x0000), input[1].Gene, "Mutation with mutationP=1 should change all bits")
@@ -40,9 +40,9 @@ func TestSpecies_Mutate_OneProbability(t *testing.T) {
 
 func TestSpecies_Mutate_ZeroProbability(t *testing.T) {
 	input := Population{
-			Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
-			Individual{0, 0x0000, 0, 0, 0.0, []uint16{0x0000, 0x0000}},
-		}
+		Individual{0, 0xFFFF, 0, 0, 0.0, []uint16{0xFFFF, 0x0000}},
+		Individual{0, 0x0000, 0, 0, 0.0, []uint16{0x0000, 0x0000}},
+	}
 	input.Mutate(0.0)
 
 	assert.Equal(t, uint16(0x0000), input[1].Gene, "Mutation with mutationP=0 should not change any bits")
@@ -51,8 +51,8 @@ func TestSpecies_Mutate_ZeroProbability(t *testing.T) {
 
 func TestSpecies_Mutate_Elitist(t *testing.T) {
 	input := Population{
-			Individual{0, 0xFFFF, 0, 0, 0, []uint16{0x0000, 0xFFFF}},
-		}
+		Individual{0, 0xFFFF, 0, 0, 0, []uint16{0x0000, 0xFFFF}},
+	}
 
 	input.Mutate(1.0)
 

@@ -90,7 +90,7 @@ func getMean(GAFitnesses []float64, CCGAFitnesses []float64, CCGAHCFitnesses []f
 func getStdDev(GAFitnesses []float64, GAMean float64, CCGAFitnesses []float64, CCGAMean float64, CCGAHCFitnesses []float64, CCGAHCMean float64) (float64, float64, float64) {
 	var GAStdDev, CCGAStdDev, CCGAHCStdDev float64
 
-	for i:=0; i<len(GAFitnesses); i++ {
+	for i := 0; i < len(GAFitnesses); i++ {
 		GAStdDev += math.Pow(GAFitnesses[i]-GAMean, 2)
 		CCGAStdDev += math.Pow(CCGAFitnesses[i]-CCGAMean, 2)
 		CCGAHCStdDev += math.Pow(CCGAHCFitnesses[i]-CCGAHCMean, 2)

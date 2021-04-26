@@ -65,7 +65,7 @@ func (spec Species) doGeneration(fitness f.Fitness, hillClimb bool, mutationP fl
 		subpop.RouletteSetup()
 
 		// Apply CCGA normally
-		for i := 1; i<len(subpop); i++ {
+		for i := 1; i < len(subpop); i++ {
 			individual := &subpop[i]
 			individual.CoevolveRoulette(CrossoverP, spec, fitness, r)
 			individual.Mutate(mutationP, r)
@@ -99,10 +99,10 @@ func (individual *Individual) HillClimb(fitness f.Fitness, iters int, stepSize i
 	BestFitness := individual.Fitness
 	BestGene := individual.Gene
 
-	for i:=0; i<iters; i++ {
+	for i := 0; i < iters; i++ {
 		offset := 0
 		// Randomly generate offsets using normal distribution until a valid offset is chosen
-		for offset == 0 && (int(BestGene) +offset > 0) && (int(BestGene) +offset <= 65535) {
+		for offset == 0 && (int(BestGene)+offset > 0) && (int(BestGene)+offset <= 65535) {
 			offset = int(r.NormFloat64() * float64(stepSize))
 		}
 
@@ -145,8 +145,8 @@ func (spec Species) SelectNewPopulation() {
 	r := rand.New(s)
 
 	// Perform tournament selection (Experiment 9)
-	for sp:=0; sp<len(spec); sp++ {
-		for i:=1; i<len(spec[0]); i++ {
+	for sp := 0; sp < len(spec); sp++ {
+		for i := 1; i < len(spec[0]); i++ {
 			individualA, individualB := lastGeneration[sp][r.Intn(len(spec[0]))], lastGeneration[sp][r.Intn(len(spec[0]))]
 			if individualA.Fitness > individualB.Fitness {
 				spec[sp][i] = individualB
@@ -184,40 +184,30 @@ func (spec Species) InitCoevolutions() {
 }
 
 func (subpop Population) Mutate(MutationP float32) {
-	//var waitGroup sync.WaitGroup
-	//waitGroup.Add(len(subpop)-1)
-
 	// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
 	for i := 1; i < len(subpop); i++ {
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
-		//go func(i int, r *rand.Rand) {
-
-			//mutatedCoevolution := pop[s][i].coevolution
-			for g := 0; g < len(subpop[i].Coevolution); g++ {
-				// Mutate each of the 16 bits in the individual's uint16 gene
-				for b := 0; b < 16; b++ {
-					// P probability of mutation
-					if r.Float32() < MutationP {
-						// Perform bit-flip
-						if common.HasBit(subpop[i].Coevolution[g], uint(b)) {
-							subpop[i].Coevolution[g] = common.ClearBit(subpop[i].Coevolution[g], uint(b))
-						} else {
-							subpop[i].Coevolution[g] = common.SetBit(subpop[i].Coevolution[g], uint(b))
-						}
+		for g := 0; g < len(subpop[i].Coevolution); g++ {
+			// Mutate each of the 16 bits in the individual's uint16 gene
+			for b := 0; b < 16; b++ {
+				// P probability of mutation
+				if r.Float32() < MutationP {
+					// Perform bit-flip
+					if common.HasBit(subpop[i].Coevolution[g], uint(b)) {
+						subpop[i].Coevolution[g] = common.ClearBit(subpop[i].Coevolution[g], uint(b))
+					} else {
+						subpop[i].Coevolution[g] = common.SetBit(subpop[i].Coevolution[g], uint(b))
 					}
 				}
 			}
+		}
 
-			//Update individual's own mutated gene too
-			subpop[i].Gene = subpop[i].Coevolution[subpop[i].SpeciesId]
+		//Update individual's own mutated gene too
+		subpop[i].Gene = subpop[i].Coevolution[subpop[i].SpeciesId]
 
-			//waitGroup.Done()
-		//} (i, r)
 	}
-
-	//waitGroup.Wait()
 }
 
 func (individual *Individual) Mutate(MutationP float32, r *rand.Rand) {
@@ -241,9 +231,7 @@ func (individual *Individual) Mutate(MutationP float32, r *rand.Rand) {
 }
 
 func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitness f.Fitness) {
-	//var waitGroup sync.WaitGroup
 	NGenes := len(subpop[0].Coevolution)
-	//waitGroup.Add(NGenes)
 
 	subpop.RouletteSetup()
 
@@ -252,51 +240,44 @@ func (subpop Population) CoevolveRoulette(crossoverP float32, spec Species, fitn
 		so := rand.NewSource(time.Now().UnixNano())
 		r := rand.New(so)
 
-		//go func(N int, r *rand.Rand) {
+		// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
+		for i := 1; i < len(subpop); i++ {
+			// Two cases for updating Coevolutions:
+			//	1. We're updating the subpop member's own gene:
+			//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
+			//  2. We're picking genes for the coevolution from other subpopulations:
+			//      -> Select current best subcomponents
 
-			// Index starts at 1 to skip the most fit individual. Elitist strategy preserving fittest individual from each subspecies.
-			for i := 1; i < len(subpop); i++ {
-				// Two cases for updating Coevolutions:
-				//	1. We're updating the subpop member's own gene:
-				//		-> TwoPointCrossover with its existing gene & roulette-selected gene from the same subpopulation
-				//  2. We're picking genes for the coevolution from other subpopulations:
-				//      -> Select current best subcomponents
+			if subpop[i].SpeciesId == N {
+				// Coevolution Case 1
 
-				if subpop[i].SpeciesId == N {
-					// Coevolution Case 1
+				// Whether to use crossover (otherwise, do nothing)
+				if r.Float32() < crossoverP {
+					offspringA, offspringB := common.TwoPointCrossover(subpop[i].Gene, subpop.RouletteSelection(r).Gene)
 
-					// Whether to use crossover (otherwise, do nothing)
-					if r.Float32() < crossoverP {
-						offspringA, offspringB := common.TwoPointCrossover(subpop[i].Gene, subpop.RouletteSelection(r).Gene)
-
-						// Pick best offspring
-						subpop[i].Coevolution[N] = offspringA
-						fitnessA := fitness(subpop[i].Coevolution)
+					// Pick best offspring
+					subpop[i].Coevolution[N] = offspringA
+					fitnessA := fitness(subpop[i].Coevolution)
+					subpop[i].Coevolution[N] = offspringB
+					fitnessB := fitness(subpop[i].Coevolution)
+					if fitnessA > fitnessB {
 						subpop[i].Coevolution[N] = offspringB
-						fitnessB := fitness(subpop[i].Coevolution)
-						if fitnessA > fitnessB {
-							subpop[i].Coevolution[N] = offspringB
-						} else {
-							subpop[i].Coevolution[N] = offspringA
-						}
+					} else {
+						subpop[i].Coevolution[N] = offspringA
 					}
-
-				} else {
-					// Coevolution Case 2
-					subpop[i].Coevolution[N] = spec[N][0].Gene
 				}
+
+			} else {
+				// Coevolution Case 2
+				subpop[i].Coevolution[N] = spec[N][0].Gene
 			}
-			//waitGroup.Done()
-		//}(N, r)
-
+		}
 	}
-
-	//waitGroup.Wait()
 }
 
 func (individual *Individual) CoevolveRoulette(crossoverP float32, spec Species, fitness f.Fitness, r *rand.Rand) {
 	NGenes := len(individual.Coevolution)
-	// 1. COEVOLVE ROULETTE
+
 	for N := 0; N < NGenes; N++ {
 		// Two cases for updating Coevolutions:
 		//	1. We're updating the subpop member's own gene:
@@ -330,7 +311,6 @@ func (individual *Individual) CoevolveRoulette(crossoverP float32, spec Species,
 		individual.Coevolution[N] = individual.Gene
 	}
 }
-
 
 // RouletteSetup calculates population selection probabilities from ScaledFitness scores, required before using RouletteSelection.
 // Adapted from: https://stackoverflow.com/a/177278/6008271
@@ -374,7 +354,7 @@ func (subpop Population) RouletteSelection(r *rand.Rand) Individual {
 // EvalFitness checks the fitness of each coevolved individual's genes and updates its Fitness & ScaledFitness scores.
 // Return number of fitness evaluations
 func (spec Species) EvalFitness(fitness f.Fitness, fMax float64) {
-	for s:=0; s<len(spec); s++ {
+	for s := 0; s < len(spec); s++ {
 		spec[s].EvalFitness(fitness, fMax)
 	}
 }
@@ -395,12 +375,11 @@ func (individual *Individual) EvalFitness(fitness f.Fitness, fMax float64) {
 	individual.ScaledFitness = math.Abs(fMax - individual.Fitness)
 }
 
-
 func (spec Species) SortFitness() {
 	// Sort the population's individuals by fittest (smallest) to least fit (largest)
-	for s:=0; s<len(spec); s++ {
+	for s := 0; s < len(spec); s++ {
 		sort.Slice(spec[s], func(i, j int) bool {
-			return spec[s][i].Fitness <  spec[s][j].Fitness
+			return spec[s][i].Fitness < spec[s][j].Fitness
 		})
 	}
 }
@@ -417,7 +396,7 @@ func (subpop Population) SortFitness() {
 func (spec Species) GetBestFitness() (float64, []uint16) {
 	bestFitness := math.MaxFloat64
 	var bestCoevolution []uint16
-	for s:=0; s<len(spec); s++ {
+	for s := 0; s < len(spec); s++ {
 		if spec[s][0].Fitness < bestFitness {
 			bestFitness = spec[s][0].Fitness
 			bestCoevolution = spec[s][0].Coevolution
@@ -445,7 +424,7 @@ func (spec Species) GetWorstFitness() (float64, []uint16) {
 	worstFitness := 0.0
 	var worstCoevolution []uint16
 
-	for s:=0; s<len(spec); s++ {
+	for s := 0; s < len(spec); s++ {
 		if spec[s][popSize-1].Fitness > worstFitness {
 			worstFitness = spec[s][popSize-1].Fitness
 			worstCoevolution = spec[s][popSize-1].Coevolution
